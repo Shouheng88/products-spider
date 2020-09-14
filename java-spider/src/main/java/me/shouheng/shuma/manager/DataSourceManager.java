@@ -2,20 +2,31 @@ package me.shouheng.shuma.manager;
 
 import com.alibaba.druid.pool.DruidDataSource;
 import com.mysql.cj.jdbc.Driver;
-import me.shouheng.shuma.SpiderEnv;
+import lombok.extern.slf4j.Slf4j;
+import me.shouheng.shuma.SpiderApp;
+import org.apache.ibatis.io.Resources;
+import org.apache.ibatis.mapping.Environment;
+import org.apache.ibatis.session.Configuration;
+import org.apache.ibatis.session.SqlSession;
+import org.apache.ibatis.session.SqlSessionFactory;
+import org.apache.ibatis.session.SqlSessionFactoryBuilder;
+import org.apache.ibatis.transaction.TransactionFactory;
+import org.apache.ibatis.transaction.jdbc.JdbcTransactionFactory;
 
-import javax.sql.DataSource;
+import java.io.IOException;
+import java.io.InputStream;
 import java.sql.SQLException;
 
+@Slf4j
 public class DataSourceManager {
 
     private static volatile DataSourceManager sourceManager;
 
     private DruidDataSource source;
 
-    private SpiderEnv env;
+    private SpiderApp.SpiderEnv env;
 
-    public static DataSourceManager getInstance(SpiderEnv env) {
+    public static DataSourceManager getInstance(SpiderApp.SpiderEnv env) {
         if (sourceManager == null) {
             synchronized (DataSourceManager.class) {
                 if (sourceManager == null) {
@@ -26,7 +37,7 @@ public class DataSourceManager {
         return sourceManager;
     }
 
-    private DataSourceManager(SpiderEnv env) {
+    private DataSourceManager(SpiderApp.SpiderEnv env) {
         this.env = env;
         initDataSource();
     }
@@ -63,7 +74,16 @@ public class DataSourceManager {
         }
     }
 
-    public DataSource getDataSource() {
-        return source;
+    public SqlSession getSqlSession() throws IOException {
+        String resource = "mybatis/mybatis-config.xml";
+        InputStream inputStream = Resources.getResourceAsStream(resource);
+        SqlSessionFactory sqlSessionFactory = new SqlSessionFactoryBuilder().build(inputStream);
+        TransactionFactory transactionFactory = new JdbcTransactionFactory();
+        Environment environment = new Environment("development", transactionFactory, source);
+        Configuration configuration = sqlSessionFactory.getConfiguration();
+        configuration.getTypeHandlerRegistry().register("me.shouheng.shuma.dao.handler");
+        configuration.getTypeAliasRegistry().registerAliases("me.shouheng.shuma.model");
+        configuration.setEnvironment(environment);
+        return sqlSessionFactory.openSession();
     }
 }
