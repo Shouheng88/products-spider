@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="me.shouheng.shuma.dao.TopicDAO">
+
+    <insert id="insert" parameterType="me.shouheng.shuma.model.po.Topic">
+        insert into gt_topic(
+        <!-- 0-->id,
+        <!-- 1-->name,
+        <!-- 2-->type,
+        <!-- 3-->cover,
+        <!-- 4-->description,
+        <!-- 5-->creator_id,
+        <!-- 6-->creator_name,
+        <!-- 7-->creator_avatar,
+        <!-- 8-->start_time,
+        <!-- 9-->end_time,
+        <!-- 10-->status,
+        <!-- 11-->remark,
+        <!-- 12-->lock_version,
+        <!-- 13-->updated_time,
+        <!-- 14-->created_time
+        )
+        values(
+        <!-- 0-->#{id:BIGINT},
+        <!-- 1-->#{name:VARCHAR},
+        <!-- 2-->#{type:SMALLINT},
+        <!-- 3-->#{cover:VARCHAR},
+        <!-- 4-->#{description:VARCHAR},
+        <!-- 5-->#{creatorId:BIGINT},
+        <!-- 6-->#{creatorName:VARCHAR},
+        <!-- 7-->#{creatorAvatar:VARCHAR},
+        <!-- 8-->#{startTime:BIGINT},
+        <!-- 9-->#{endTime:BIGINT},
+        <!-- 10-->#{status:SMALLINT},
+        <!-- 11-->#{remark:VARCHAR},
+        <!-- 12-->#{lockVersion:BIGINT},
+        <!-- 13-->#{updatedTime:BIGINT},
+        <!-- 14-->#{createdTime:BIGINT}
+        )
+        <selectKey resultType="java.lang.Long" order="AFTER" keyProperty="id">
+            select last_insert_id() as id
+        </selectKey>
+    </insert>
+
+    <update id="update" parameterType="me.shouheng.shuma.model.po.Topic">
+        update gt_topic set
+            name=#{name:VARCHAR},
+            type=#{type:SMALLINT},
+            cover=#{cover:VARCHAR},
+            description=#{description:VARCHAR},
+            creator_id=#{creatorId:BIGINT},
+            creator_name=#{creatorName:VARCHAR},
+            creator_avatar=#{creatorAvatar:VARCHAR},
+            start_time=#{startTime:BIGINT},
+            end_time=#{endTime:BIGINT},
+            status=#{status:SMALLINT},
+            remark=#{remark:VARCHAR},
+            updated_time=#{updatedTime:BIGINT},
+            created_time=#{createdTime:BIGINT},
+            LOCK_VERSION = LOCK_VERSION+1
+            where ID=#{id}
+    </update>
+
+    <update id="updatePOSelective" parameterType="me.shouheng.shuma.model.po.Topic">
+        update gt_topic
+        <set>
+            <if test="name != null ">
+                name=#{name:VARCHAR} , 
+            </if>
+            <if test="type != null ">
+                type=#{type:SMALLINT} ,
+            </if>
+            <if test="cover != null ">
+                cover=#{cover:VARCHAR} , 
+            </if>
+            <if test="description != null ">
+                description=#{description:VARCHAR} , 
+            </if>
+            <if test="creatorId != null ">
+                creator_id=#{creatorId:BIGINT} , 
+            </if>
+            <if test="creatorName != null ">
+                creator_name=#{creatorName:VARCHAR} , 
+            </if>
+            <if test="creatorAvatar != null ">
+                creator_avatar=#{creatorAvatar:VARCHAR} , 
+            </if>
+            <if test="startTime != null ">
+                start_time=#{startTime:BIGINT} , 
+            </if>
+            <if test="endTime != null ">
+                end_time=#{endTime:BIGINT} , 
+            </if>
+            <if test="status != null ">
+                status=#{status:SMALLINT} , 
+            </if>
+            <if test="remark != null ">
+                remark=#{remark:VARCHAR} , 
+            </if>
+            <if test="updatedTime != null ">
+                updated_time=#{updatedTime:BIGINT} , 
+            </if>
+            <if test="createdTime != null ">
+                created_time=#{createdTime:BIGINT} , 
+            </if>
+            LOCK_VERSION = LOCK_VERSION+1
+        </set>
+        where ID=#{id}
+    </update>
+
+    <update id="batchUpdateCreatorInfo">
+        update gt_topic
+        <set>
+            <if test="creatorName != null ">
+                creator_name=#{creatorName:VARCHAR} ,
+            </if>
+            <if test="creatorAvatar != null ">
+                creator_avatar=#{creatorAvatar:VARCHAR} ,
+            </if>
+            updated_time = unix_timestamp(now()),
+            LOCK_VERSION = LOCK_VERSION+1
+        </set>
+        where creator_id=#{creatorId}
+    </update>
+
+    <select id="selectByPrimaryKey" parameterType="long" resultType="me.shouheng.shuma.model.po.Topic">
+        select * from gt_topic where id=#{id}
+    </select>
+
+    <select id="searchBySo" resultType="me.shouheng.shuma.model.po.Topic">
+        select t.* from gt_topic t
+        <include refid="SO_Where_Clause" />
+    </select>
+
+    <select id="searchCountBySo" resultType="long">
+        select count(t.id) from gt_topic t
+        <include refid="SO_Where_Clause" />
+    </select>
+
+    <sql id="SO_Where_Clause">
+        <where>
+            1=1
+            <if test="name != null ">
+                and t.name=#{name}
+            </if>
+            <if test="creatorId != null ">
+                and t.creator_id=#{creatorId}
+            </if>
+            <if test="topicIds != null and topicIds.size() > 0 ">
+                and t.id in
+                <foreach collection="topicIds" item="item" open="(" separator="," close=")">
+                    #{item}
+                </foreach>
+            </if>
+            <if test="topicType != null ">
+                and t.type = #{topicType}
+            </if>
+            <if test="nameQuery != null">
+                and t.name like concat('%', #{nameQuery}, '%')
+            </if>
+        </where>
+        <include refid="Base.Order_By_Clause" />
+    </sql>
+
+    <delete id="deleteByPrimaryKey" parameterType="long">
+        delete from gt_topic where id=#{id}
+    </delete>
+</mapper>

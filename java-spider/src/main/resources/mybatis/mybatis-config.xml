@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration
+        PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+
+    <!--配置 MyBatis，参考：http://www.mybatis.org/mybatis-3/zh/configuration.html-->
+    <settings>
+        <!--全局地开启或关闭配置文件中的所有映射器已经配置的任何缓存-->
+        <setting name="cacheEnabled" value="true"/>
+        <!--延迟加载的全局开关。当开启时，所有关联对象都会延迟加载-->
+        <setting name="lazyLoadingEnabled" value="false"/>
+        <!--当开启时，任何方法的调用都会加载该对象的所有属性。否则，每个属性会按需加载-->
+        <setting name="aggressiveLazyLoading" value="false"/>
+        <!--是否允许单一语句返回多结果集（需要驱动支持）-->
+        <setting name="multipleResultSetsEnabled" value="false"/>
+        <!--使用列标签代替列名-->
+        <setting name="useColumnLabel" value="false"/>
+        <!--允许 JDBC 支持自动生成主键，需要驱动支持-->
+        <setting name="useGeneratedKeys" value="true"/>
+        <!--指定 MyBatis 应如何自动映射列到字段或属性-->
+        <setting name="autoMappingBehavior" value="PARTIAL"/>
+        <!--配置默认的执行器。
+        1.SIMPLE 就是普通的执行器；
+        2.REUSE 执行器会重用预处理语句（prepared statements）；
+        3.BATCH 执行器将重用语句并执行批量更新。-->
+        <setting name="defaultExecutorType" value="REUSE"/>
+        <!--设置超时时间，它决定驱动等待数据库响应的秒数-->
+        <setting name="defaultStatementTimeout" value="25000"/>
+        <!--是否开启自动驼峰命名规则（camel case）映射，即从经典数据库列名 A_COLUMN 到经典 Java 属性名 aColumn 的类似映射。-->
+        <setting name="mapUnderscoreToCamelCase" value="true"/>
+    </settings>
+
+    <mappers>
+        <mapper resource="mybatis/mapper/base/BaseMapper.xml"/>
+        <mapper resource="mybatis/mapper/base/CommonModelMapper.xml"/>
+        <mapper resource="mybatis/mapper/TopicMapper.xml"/>
+    </mappers>
+</configuration>

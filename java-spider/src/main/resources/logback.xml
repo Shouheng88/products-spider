@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <!-- 应用名称：和统一配置中的项目代码保持一致（小写） -->
+    <property name="APP_NAME" value="base" />
+    <!-- 日志文件保留天数 -->
+    <property name="LOG_MAX_HISTORY" value="30" />
+    <!-- 日志文件过大会使的编辑器打开非常慢，因此设置日志最大50MB -->
+    <property name="LOG_MAX_FILE_SIZE" value="50MB" />
+    <!-- 总日志大小 -->
+    <property name="LOG_TOTAL_SIZE_GAP" value="10GB" />
+    <!-- 应用日志文件保存路径，定义日志文件的存储地址 勿在 LogBack 的配置中使用相对路径  -->
+    <property name="LOG_APP_HOME" value="./logs/spider" />
+    <!-- 彩色日志依赖的渲染类,控制台上的日志彩色显示 -->
+    <!-- 彩色日志格式 -->
+    <property name="CONSOLE_LOG_PATTERN"
+              value="%red(%date{yyyy-MM-dd HH:mm:ss}) %highlight(%-5level) %red([%thread]) %boldMagenta(%logger{50}) %cyan(%msg%n)"/>
+
+    <!--=========================== 按照每天生成日志文件：默认配置=================================== -->
+    <!-- 控制台输出 -->
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <Pattern>${CONSOLE_LOG_PATTERN}</Pattern>
+            <!-- 此处设置字符集 -->
+            <charset>UTF-8</charset>
+            <!-- 格式化输出：%d表示日期，%thread表示线程名，%-5level：级别从左显示5个字符宽度%msg：日志消息，%n是换行符 -->
+            <!--<pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n</pattern>-->
+        </encoder>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>debug</level>
+        </filter>
+    </appender>
+    <!-- 按照每天生成日志文件：主项目日志 -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_APP_HOME}/log</file> <!-- 日志名称 -->
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <!-- 日志文件输出的文件名 -->
+            <FileNamePattern>${LOG_APP_HOME}/App_Root.%d{yyyy-MM-dd}.%i.log</FileNamePattern>
+            <!-- 日志文件保留天数 -->
+            <MaxHistory>${LOG_MAX_HISTORY}</MaxHistory>
+            <!-- 日志文件过大会使的编辑器打开非常慢 -->
+            <maxFileSize>${LOG_MAX_FILE_SIZE}</maxFileSize>
+            <!-- 总日志大小 -->
+            <totalSizeCap>${LOG_TOTAL_SIZE_GAP}</totalSizeCap>
+        </rollingPolicy>
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <!-- 格式化输出：%d表示日期，%thread表示线程名，%-5level：级别从左显示5个字符宽度%msg：日志消息，%n是换行符 -->
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{500} - %msg%n</pattern>
+        </encoder>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>info</level>
+        </filter>
+    </appender>
+    <!-- LogStash 日志收集插件，注释原因：暂时不启用该功能 -->
+    <!--<appender name="LOGSTASH" class="net.logstash.logback.appender.LogstashTcpSocketAppender">-->
+        <!--<destination>localhost:9250</destination>-->
+        <!--<encoder charset="UTF-8" class="net.logstash.logback.encoder.LogstashEncoder" />-->
+    <!--</appender>-->
+
+    <root level="DEBUG">
+        <appender-ref ref="FILE" />
+        <appender-ref ref="STDOUT" />
+        <!--<appender-ref ref="LOGSTASH" />-->
+    </root>
+</configuration>
