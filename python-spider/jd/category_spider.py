@@ -16,7 +16,7 @@ class CategorySpider(object):
         self.dist["三级品类"] = []
         self.dist["三级品类链接"] = []
 
-    def crawlCaegory(self):
+    def crawlCategory(self):
         html = requests.get("https://www.jd.com/allSort.aspx").text
         soup = BeautifulSoup(html, "html.parser")
         categories = soup.find_all(class_="category-item m")
@@ -40,6 +40,3 @@ class CategorySpider(object):
                         self.dist["三级品类链接"].append(collection_item_link)
         eo = ExcelOperator()
         eo.write_excel("京东", self.dist, "../京东分类.xlsx")
-
-if __name__ == "__main__":
-    CategorySpider().crawlCaegory()
