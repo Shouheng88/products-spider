@@ -22,14 +22,22 @@ class CategorySpider(object):
         categories = soup.find_all(class_="home-category-list")
         for category in categories:
             item_title = category.find(class_="category-name").string
-            collections = category.find_all(class_="category-list")
+            collections = category.find_all(class_="category-list-item")
             for collection in collections:
                 collection_name = collection.a.string
-                collection_link = "https:" + collection.a["href"]
+                if collection_name == None:
+                    collection_name = ""
+                collection_link = ""
+                if collection.a.get("href") != None:
+                    collection_link = "https:" + collection.a["href"]
                 collection_items = collection.find(class_="category-items").find_all(class_="category-name")
                 for collection_item in collection_items:
                     collection_item_name = collection_item.string
-                    collection_item_link = "https:" + collection_item["href"]
+                    collection_item_link = ""
+                    if collection_item.get("href") != None:
+                        collection_item_link = "https:" + collection_item["href"]
+                    if collection_item_name == None:
+                        collection_item_name = ""
                     print(item_title + "-" + collection_name + "(" + collection_link +  ")-" + collection_item_name + "(" + collection_item_link +  ")")
                     self.dist["一级品类"].append(item_title)
                     self.dist["二级品类"].append(collection_name)

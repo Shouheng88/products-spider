@@ -2,6 +2,7 @@ package me.shouheng.shuma;
 
 import lombok.extern.slf4j.Slf4j;
 import me.shouheng.shuma.spider.JDSpider;
+import me.shouheng.shuma.spider.TBSpider;
 
 import java.io.IOException;
 
@@ -13,7 +14,7 @@ public class SpiderApp {
     }
 
     public static void main(String... args) throws IOException {
-        JDSpider jd = new JDSpider();
-        jd.parseCategories();
+        TBSpider tbSpider = new TBSpider();
+        tbSpider.SpiderCategories();
     }
 }
