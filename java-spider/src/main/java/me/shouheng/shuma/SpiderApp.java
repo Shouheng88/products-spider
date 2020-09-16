@@ -14,7 +14,7 @@ public class SpiderApp {
     }
 
     public static void main(String... args) throws IOException {
-        TBSpider tbSpider = new TBSpider();
-        tbSpider.SpiderCategories();
+        JDSpider jdSpider = new JDSpider();
+        jdSpider.parseItemLists();
     }
 }
