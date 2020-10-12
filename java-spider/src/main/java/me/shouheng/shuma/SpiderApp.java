@@ -13,8 +13,8 @@ public class SpiderApp {
         local, test, prod
     }
 
-    public static void main(String... args) throws IOException {
+    public static void main(String... args) {
         JDSpider jdSpider = new JDSpider();
-        jdSpider.parseItemLists();
+        jdSpider.parseItemPage();
     }
 }
