@@ -10,8 +10,8 @@ from config import JD_CATEGORY_STORE
 from config import JD_HANDLED_CATEGORY_STORE
 from config import TB_CATEGORY_STORE
 
-# 京东分类处理
 class JDCategory(object):
+    '''京东分类信息管理类'''
     def __init__(self):
         self.dist = {}
         self.dist["一级品类"] = []
@@ -20,7 +20,6 @@ class JDCategory(object):
         self.dist["三级品类"] = []
         self.dist["三级品类链接"] = []
 
-    # 爬取京东品类数据
     def crawl(self):
         '''爬取京东的品类信息'''
         html = requests.get("https://www.jd.com/allSort.aspx").text
@@ -47,7 +46,6 @@ class JDCategory(object):
         eo = ExcelOperator()
         eo.write_excel("京东", self.dist, JD_CATEGORY_STORE)
 
-    # 将处理结果写入到数据库中
     def write_results(self):
         """将处理结果写入到数据库中"""
         # 读取 Excel
@@ -108,8 +106,8 @@ class JDCategory(object):
                         logging.error("INSERT INTO DB ERROR!!!!!!")
                         break
 
-# 自定义的分类
 class Category(object):
+    '''分类信息封装'''
     def __init__(self):
         self.name = ''
         self.link = ''
@@ -121,8 +119,8 @@ class Category(object):
         self.display_order = 0
         self.children = {}
 
-# 淘宝分类处理
 class TBCategory(object):
+    '''淘宝分类信息管理类'''
     def __init__(self):
         self.dist = {}
         self.dist["一级品类"] = []
@@ -131,8 +129,8 @@ class TBCategory(object):
         self.dist["三级品类"] = []
         self.dist["三级品类链接"] = []
 
-    # 爬取京东分类数据
     def crawl(self):
+        '''爬取淘宝分类数据'''
         html = requests.get("https://www.taobao.com/tbhome/page/market-list").text
         soup = BeautifulSoup(html, "html.parser")
         categories = soup.find_all(class_="home-category-list")

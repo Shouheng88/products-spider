@@ -16,13 +16,11 @@ from config import CHANNEL_ID_ROW_INDEX as id_idx
 from config import CHANNEL_TREEPATH_ROW_INDEX as treepath_idx
 from config import CHANNEL_LOCK_VERSION_ROW_INDEX as lock_version_idx
 
-# Xml 操作类
 class XmlOperator:
     # 初始化
     def __init__(self):
         pass
 
-# Json 操作类
 class JsonOperator:
     # 初始化
     def __init__(self):
@@ -39,7 +37,6 @@ class JsonOperator:
         with open(fname, "r") as f:
             return json.load(f)
 
-# Excel 操作类
 class ExcelOperator:
     # 初始化
     def __init__(self):
@@ -84,7 +81,6 @@ class ExcelOperator:
                 col_list[col].append(value)
         return col_list
 
-# 数据库操作类
 class DBOperator(object):
     '''
     目前这个数据库的设计方案是按照多进程来设计，如果多线程的话，除非你在应用内部切换 ip
@@ -96,25 +92,8 @@ class DBOperator(object):
     def __init__(self):
         super().__init__()
 
-    # 从数据库中读取所有的分类
-    def select_all_channels(self):
-        '''
-        从数据库中读取所有的分类，返回的数据时 ((id, name, ...), (), (), ...)
-        是一个元组，每个元素是一个元组，元素的每个元素代表数据库的一列
-        '''
-        sql = ("SELECT * FROM gt_channel ORDER BY created_time")
-        con = self.connect_db()
-        cur = con.cursor()
-        cur.execute(sql)
-        rows = cur.fetchall()
-        logging.debug(rows)
-        cur.close()
-        con.close()
-        return rows
-
-    # 获取下一个需要处理的品类
     def next_channel_to_handle(self):
-        '''获取下一个需要处理的品类'''
+        '''获取下一个需要处理的品类，如果返回的结果是 None 就表示这个品类的数据已经爬取完了'''
         # 要求：
         # 1. updated_time 在今天之前，也就是每天最多爬取一次数据
         # 2. handling_time 在现在 30 分钟之前, 如果 30 分钟还没有完成，说明任务失败了
@@ -147,7 +126,6 @@ class DBOperator(object):
         con.close()
         return channel
 
-    # 将指定的品类标记为完成状态
     def mark_channel_as_done(self, channel):
         '''
         将指定的品类标记为完成状态：
@@ -157,7 +135,10 @@ class DBOperator(object):
         '''
         pass
 
-    # 将各个分类数据写入到数据库种
+    def batch_insert_or_update_goods(self, goods_list):
+        '''批量向数据库当中插入数据或者更新数据当中的记录'''
+        pass
+
     def write_channel(self, category):
         '''将各个分类数据写入到数据库种'''
         con = self.connect_db()
@@ -197,7 +178,15 @@ class DBOperator(object):
             con.close()
         return row_id
 
-    # 连接数据库
     def connect_db(self):
         '''链接数据库'''
         return pymysql.connect(host='localhost', port=***REMOVED***, user='root',password='***REMOVED***', database='***REMOVED***')
+
+class RedisOperator(object):
+    '''Redis 操作的封装类'''
+    def __init__(self):
+        super().__init__()
+
+    def add_goods_price_histories(self, goods_list):
+        '''添加商品的历史价格信息'''
+        pass
