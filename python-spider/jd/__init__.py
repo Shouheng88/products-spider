@@ -1,1 +1,0 @@
-from . import category_spider
