@@ -10,7 +10,6 @@ from operators import DBOperator as DB
 from utils import TimeHelper as TH
 from config import GlobalConfig as Config
 
-# 主程序入口
 def main(argv):
     """主程序入口"""
     Config.config_logging()
@@ -72,6 +71,5 @@ def main(argv):
                     jd = JDCategory()
                     jd.write_results()
 
-# 主程序，入口
 if __name__ == "__main__":
     main(sys.argv[1:])

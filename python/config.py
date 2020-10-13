@@ -13,6 +13,8 @@ CHANNEL_TREEPATH_ROW_INDEX = 3
 CHANNEL_JD_URL_ROW_INDEX = 4
 CHANNEL_LOCK_VERSION_ROW_INDEX = 10
 
+GOODS_LINK_ROW_INDEX = 3              # 商品的列信息，对应的数据库字段的索引
+
 JD_CATEGORY_STORE = "../data/京东分类.xlsx"
 TB_CATEGORY_STORE = "../data/淘宝分类.xlsx"
 JD_HANDLED_CATEGORY_STORE = "../data/京东分类-处理.xlsx"

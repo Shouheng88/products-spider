@@ -15,6 +15,7 @@ from utils import TimeHelper as TH
 from config import CHANNEL_ID_ROW_INDEX as id_idx
 from config import CHANNEL_TREEPATH_ROW_INDEX as treepath_idx
 from config import CHANNEL_LOCK_VERSION_ROW_INDEX as lock_version_idx
+from config import GOODS_LINK_ROW_INDEX
 
 class XmlOperator:
     # 初始化
@@ -137,7 +138,80 @@ class DBOperator(object):
 
     def batch_insert_or_update_goods(self, goods_list):
         '''批量向数据库当中插入数据或者更新数据当中的记录'''
-        pass
+        # 先查询指定的 link 的记录
+        val = ""
+        links = {}
+        for idx in range(0, len(goods_list)):
+            link = goods_list[idx].link
+            links[link] = goods_list[idx]
+            if idx != len(goods_list) - 1:
+                val = val + '\'' + link + "',"
+            else:
+                val = val + '\'' + link + '\''
+        sql = ("SELECT * FROM gt_item WHERE link IN (%s)")
+        con = self.connect_db()
+        cur = con.cursor()
+        cur.execute(sql % val)
+        rows = cur.fetchall()
+        succeed = True
+        try:
+            # 检索到了数据 => 执行批量更新
+            if len(rows) != 0:
+                list_2_update = []
+                for row in rows:
+                    link = row[GOODS_LINK_ROW_INDEX]
+                    if link in links:
+                        deleted_link = links.pop(link) # 移除指定的 key
+                        list_2_update.append(deleted_link)
+                if len(list_2_update) != 0:
+                    
+                    pass
+            # 没有检索到数据 => 执行插入操作
+            th = TH()
+            if len(links) != 0:
+                sql = "INSERT INTO gt_item (\
+                    name,\
+                    promo,\
+                    link,\
+                    image,\
+                    price,\
+                    price_type,\
+                    icons,\
+                    channel_id,\
+                    channel,\
+                    remark,\
+                    lock_version,\
+                    updated_time,\
+                    created_time\
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+                values = []
+                for goods_item in links.values():
+                    values.append((
+                        goods_item.name,
+                        goods_item.promo,
+                        goods_item.link,
+                        goods_item.image,
+                        goods_item.price,
+                        goods_item.price_type,
+                        goods_item.icons,
+                        goods_item.channel_id,
+                        goods_item.channel,
+                        '',                     # remark
+                        0,                      # lock_version
+                        int(th.get_current_timestamp()/1000),
+                        int(th.get_current_timestamp()/1000)
+                    ))
+                val = tuple(values)
+                cur.executemany(sql, val)
+                con.commit()
+        except BaseException as e:
+            succeed = False
+            logging.error("Failed While Batch Insert: %s." % str(e))
+            con.rollback()
+        finally:
+            cur.close()
+            con.close()
+        return succeed
 
     def write_channel(self, category):
         '''将各个分类数据写入到数据库种'''

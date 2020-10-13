@@ -8,7 +8,8 @@ from utils import safeGetAttr
 from utils import safeGetText
 from operators import DBOperator as DB
 from operators import RedisOperator as Redis
-from config import CHANNEL_NAME_ROW_INDEX as channel_name_idx
+from config import CHANNEL_ID_ROW_INDEX
+from config import CHANNEL_NAME_ROW_INDEX
 from config import CHANNEL_JD_URL_ROW_INDEX as jdurl_idx
 from config import JD_MAX_SEARCH_PAGE as jd_max_page
 from config import GlobalConfig as Config
@@ -47,14 +48,15 @@ class JDGoods(object):
   def __crawl_jd_channel(self, channel):
     '''爬取指定的品类的所有的信息'''
     channel_url = channel[jdurl_idx]
-    channel_name = channel[channel_name_idx]
+    channel_id = channel[CHANNEL_ID_ROW_INDEX]
+    channel_name = channel[CHANNEL_NAME_ROW_INDEX]
     # 抓取分类的信息，也就是第一页的信息
-    (succeed, max_page) = self.__crawl_jd_page(channel_url)
+    (succeed, max_page) = self.__crawl_jd_page(channel_url, channel)
     page_count = 1 # 已经抓取的页数
     for page_num in range(1, min(max_page, jd_max_page)):
       page_url = self.__get_page_url_of_page_number(channel_url, page_num)
       # step 1: 从页面上解析最大的页数数据，并且根据该页数的限制进行只爬指定的页数
-      (succeed, _max_page) = self.__crawl_jd_page(self, page_url)
+      (succeed, _max_page) = self.__crawl_jd_page(page_url, channel)
       page_count = page_count + 1
       if succeed:
         logging.info("Succeed To Scrawl Channel %s [%d]," % (channel_name, page_count))
@@ -65,13 +67,18 @@ class JDGoods(object):
     '''获取指定品类的指定的页码，用来统一实现获取指定的页码的地址的逻辑'''
     return jdurl + "&page=" + str(page_num)
 
-  def __crawl_jd_page(self, page_url):
+  def __crawl_jd_page(self, page_url, channel):
     '''京东商品列表信息抓取，最大的页码、产品详情等基础信息'''
-    headers = REQUEST_HEADERS
-    html = requests.get(page_url, headers=headers).text
+    channel_id = channel[CHANNEL_ID_ROW_INDEX]
+    channel_name = channel[CHANNEL_NAME_ROW_INDEX]
+    html = requests.get(page_url, headers=REQUEST_HEADERS).text
     soup = BeautifulSoup(html, "html.parser")
     (succeed1, max_page) = self.__crawl_jd_max_page(soup)
     (succeed2, goods_list) = self.__crawl_jd_goods_list(soup)
+    # 为爬取到的商品信息添加分类信息
+    for goods_item in goods_list:
+      goods_item.channel_id = channel_id
+      goods_item.channel = channel_name
     if succeed2:
       self.__handle_goods_result(goods_list)
     return (succeed1 and succeed2, max_page)
@@ -123,7 +130,7 @@ class JDGoods(object):
         commit_link = safeGetAttr(p_commit.find("a"), "href", "")
         icons = safeGetText(p_icons.find("i"), "")
         # 组装产品信息
-        goods_item = Goods_Item()
+        goods_item = GoodsItem()
         goods_item.name = name
         goods_item.promo = promo
         goods_item.link = url
@@ -150,9 +157,9 @@ class JDGoods(object):
 
   def test(self):
     '''测试入口'''
-    self.__crawl_jd_page("https://list.jd.com/list.html?cat=670%2C686%2C689&page=100")
+    self.__crawl_jd_page("https://list.jd.com/list.html?cat=670%2C686%2C689&page=100", (0, ""))
 
-class Goods_Item(object):
+class GoodsItem(object):
   '''产品信息包装类'''
   def __init__(self):
     super().__init__()
