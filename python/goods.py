@@ -44,14 +44,14 @@ class JDGoods(object):
         break
       # 对任务进行解析
       job_no = job_no + 1
-      logging.info("正在爬取品类 (%d)：%s" % (job_no, str(channel)))
+      logging.info("Crawling Channel (%d)：%s" % (job_no, str(channel)))
       # 爬取某个品类的数据
       self.__crawl_jd_channel(channel)
       # 将指定的品类标记为完成
       db.mark_channel_as_done(channel)
     # 任务完成！！！！！撒花！！！！!
     # *★,°*:.☆(￣▽￣)/$:*.°★* 
-    logging.info("商品信息爬取任务结束！")
+    logging.info("Channel Scrawl Job Finished!!!")
 
   def __crawl_jd_channel(self, channel):
     '''爬取指定的品类的所有的信息'''
@@ -92,11 +92,16 @@ class JDGoods(object):
       brand_item.channel_id = channel_id
       brand_item.channel = channel_name
     # 持久化处理爬取结果
+    db = DB()
     if succeed2:
-      self.__handle_goods_result(goods_list)
+      # 首先将商品列表信息更新数据库当中
+      db.batch_insert_or_update_goods(goods_list)
+      # 然后将价格历史记录到 Redis 中
+      redis = Redis()
+      redis.add_goods_price_histories(goods_list)
     if succeed3 and first_page:
       # 对于每个品类，只在爬取第一页的时候更新品牌信息，减少服务器压力
-      self.__handle_brands_result(brand_list)
+      db.batch_insert_or_update_brands(brand_list)
     return (succeed1 and succeed2, max_page)
 
   def __crawl_jd_max_page(self, soup):
@@ -187,20 +192,6 @@ class JDGoods(object):
       logging.error("Error While Getting Brand List : %s " % traceback.format_exc())
     # 返回结果
     return (succeed, brand_list)
-
-  def __handle_goods_result(self, goods_list):
-    '''处理商品信息爬取结果'''
-    # 首先将商品列表信息更新数据库当中
-    db = DB()
-    db.batch_insert_or_update_goods(goods_list)
-    # 然后将价格历史记录到 Redis 中
-    redis = Redis()
-    redis.add_goods_price_histories(goods_list)
-
-  def __handle_brands_result(self, brand_list):
-    '''处理品牌信息的爬取结果'''
-    db = DB()
-    db.batch_insert_or_update_brands(brand_list)
 
   def test(self):
     '''测试入口'''

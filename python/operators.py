@@ -16,12 +16,16 @@ from models import GoodsItem
 
 from utils import TimeHelper as TH
 
+from config import CHANNEL_HANDLE_TIMEOUT_IN_MINUTE
+from config import GOODS_HANDLE_TIMEOUT_IN_MINUTE
+
 from config import CHANNEL_ID_ROW_INDEX as id_idx
 from config import CHANNEL_TREEPATH_ROW_INDEX as treepath_idx
 from config import CHANNEL_LOCK_VERSION_ROW_INDEX as lock_version_idx
 
-from config import GOODS_LINK_ROW_INDEX
 from config import GOODS_ID_ROW_INDEX
+from config import GOODS_LINK_ROW_INDEX
+from config import GOODS_LOCK_VERSION_ROW_INDEX
 
 class XmlOperator:
     # 初始化
@@ -98,16 +102,16 @@ class DBOperator(object):
     '''
     def __init__(self):
         super().__init__()
+        self.th = TH()
 
     def next_channel_to_handle(self):
         '''获取下一个需要处理的品类，如果返回的结果是 None 就表示这个品类的数据已经爬取完了'''
         # 要求：
         # 1. updated_time 在今天之前，也就是每天最多爬取一次数据
-        # 2. handling_time 在现在 30 分钟之前, 如果 30 分钟还没有完成，说明任务失败了
+        # 2. handling_time 在现在 2 分钟之前, 如果 2 分钟还没有完成，说明任务失败了
         # 3. 按照 updated_time 低到高排序，也就是上次完成时间
-        th = TH()
-        today_starter = th.get_timestamp_of_today_start()
-        handling_before = th.get_current_timestamp() - th.get_quartern_seconds()
+        today_starter = self.th.get_timestamp_of_today_start()
+        handling_before = self.th.get_current_timestamp() - th.get_seconds_of_minutes(CHANNEL_HANDLE_TIMEOUT_IN_MINUTE)
         sql = ("SELECT * FROM gt_channel WHERE updated_time < %s and handling_time < %s ORDER BY updated_time")
         val = (today_starter, handling_before)
         con = self.connect_db()
@@ -262,6 +266,54 @@ class DBOperator(object):
         sql = "UPDATE gt_item SET \n %s WHERE id IN ( %s ) " % (sql_when_then, val_ids)
         cur.execute(sql)
 
+    def update_goods_parames_and_mark_done(self, goods_item, goods_params):
+        '''批量更新产品的参数信息，同时将该条目标记为完成状态'''
+        goods_id = goods_item[GOODS_ID_ROW_INDEX]
+        lock_version = goods_item[GOODS_LOCK_VERSION_ROW_INDEX]
+        # 判断需要更新的字段，防止因为没有抓取到数据覆盖了之前爬取的结果
+        fileds_to_update = {}
+        if goods_params.brand != '':
+            fileds_to_update['brand'] = goods_params.brand
+        if goods_params.brand_url != '':
+            fileds_to_update['brand_link'] = goods_params.brand_url
+        if goods_params.store != '':
+            fileds_to_update['store'] = goods_params.store
+        if goods_params.store_url != '':
+            fileds_to_update['store_link'] = goods_params.store_url
+        if len(goods_params.parameters) != 0:
+            fileds_to_update['parameters'] = str(goods_params.parameters).replace('\'', '"')
+        if len(goods_params.packages) != 0:
+            fileds_to_update['packages'] = str(goods_params.packages).replace('\'', '"')
+        if len(fileds_to_update) == 0:
+            logging.warning("Trying to Update But Nothing Need to Update.")
+            return False
+        # 拼接 sql
+        sql_part = ''
+        idx_sql_part = 0
+        for name, value in fileds_to_update.items():
+            sql_part = sql_part + name + " = '" + value + "',"
+        sql_part = sql_part + ' lock_version = ' + str((lock_version + 1)) + ', '
+        sql_part = sql_part + ' updated_time = ' + str(self.th.get_current_timestamp())
+        sql = "UPDATE gt_item SET %s WHERE id = %s and lock_version = %s" % (sql_part, goods_id, lock_version)
+        logging.debug(sql)
+        succeed = True
+        try:
+            con = self.connect_db()
+            cur = con.cursor()
+            ret = cur.execute(sql)
+            if ret == 0:
+                succeed = False
+                logging.error("Failed To Update Goods Item.")
+            con.commit()
+        except BaseException as e:
+            succeed = False
+            logging.error("Failed While Batch Insert: %s." % traceback.format_exc())
+            con.rollback()
+        finally:
+            cur.close()
+            con.close()
+        return succeed
+
     def batch_insert_or_update_brands(self, brand_list):
         '''批量插入或者更新品牌列表'''
         pass
@@ -304,6 +356,32 @@ class DBOperator(object):
             cur.close()
             con.close()
         return row_id
+
+    def next_item_to_handle(self):
+        '''从商品列表中取出下一个需要解析的商品，设计的逻辑参考品类爬取相关的逻辑'''
+        today_starter = self.th.get_timestamp_of_today_start()
+        handling_before = self.th.get_current_timestamp() - th.get_seconds_of_minutes(GOODS_HANDLE_TIMEOUT_IN_MINUTE)
+        sql = ("SELECT * FROM gt_item WHERE updated_time < %s and handling_time < %s ORDER BY updated_time")
+        val = (today_starter, handling_before)
+        con = self.connect_db()
+        cur = con.cursor()
+        cur.execute(sql, val)
+        rows = cur.fetchall()
+        # 拿到了商品之后进行处理
+        goods_item = None
+        for row in rows:
+            row_id = row[GOODS_ID_ROW_INDEX]
+            lock_version = row[GOODS_LOCK_VERSION_ROW_INDEX]
+            # 尝试锁任务
+            ret = cur.execute("UPDATE gt_item SET handling_time = %s, lock_version = %s WHERE id = %s and lock_version = %s", 
+                (th.get_current_timestamp(), lock_version+1, row_id, lock_version))
+            if ret == 1:
+                goods_item = row
+                break
+        con.commit() # 提交事务
+        cur.close()
+        con.close()
+        return goods_item
 
     def connect_db(self):
         '''链接数据库'''

@@ -19,9 +19,9 @@ class TimeHelper(object):
     """获取当前的时间戳"""
     return int(time.time())
 
-  def get_quartern_seconds(self):
-    """获取一刻，也就是 15 分钟的时间长度，单位秒"""
-    return 15 * 60
+  def get_seconds_of_minutes(self, minutes):
+    """获取指定的分钟的描述"""
+    return minutes * 60
 
 def safeGetAttr(node, attr, value):
   '''安全的方式来获取属性，用于 BeautifulSoup，防止程序运行中出现空指针异常'''

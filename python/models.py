@@ -46,6 +46,20 @@ class GoodsItem(object):
       th = TH()
       return th.get_current_timestamp()
 
+class GoodsParams(object):
+  '''产品的品牌信息，这个是解析结果的包装对象'''
+  def __init__(self):
+    super().__init__()
+    self.brand = ''
+    self.brand_url = ''
+    self.store = ''
+    self.store_url = ''
+    self.parameters = [] # [(), (), ...] 一个列表，每个元素是一个字典
+    self.packages = {} # 是一个哈希表 {g1: [(), (), ...], g2:[], ...}
+
+  def __str__(self):
+      return 'Brand:' + self.brand + '(' + self.brand_url + ')\nStore:' + self.store + '(' + self.store_url + ')\nParameters:' + str(self.parameters) + '\nPackages:'  + str(self.packages)
+
 class BrandItem(object):
   '''商品的品牌信息'''
   def __init__(self):

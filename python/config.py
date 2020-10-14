@@ -5,7 +5,9 @@ import logging
 
 CRAWL_SLEEP_TIME_INTERVAL = 1500      # 爬虫的睡眠时间
 
-JD_MAX_SEARCH_PAGE = 30
+JD_MAX_SEARCH_PAGE = 100
+CHANNEL_HANDLE_TIMEOUT_IN_MINUTE = 2  # 分类处理的超时时间，超时完不成则认为失败
+GOODS_HANDLE_TIMEOUT_IN_MINUTE = 2    # 产品超时时间，同上
 
 CHANNEL_ID_ROW_INDEX = 0              # 分类的列信息，对应的数据库字段的索引
 CHANNEL_NAME_ROW_INDEX = 1
@@ -15,6 +17,7 @@ CHANNEL_LOCK_VERSION_ROW_INDEX = 10
 
 GOODS_ID_ROW_INDEX = 0                # 商品的列信息，对应的数据库字段的索引
 GOODS_LINK_ROW_INDEX = 3
+GOODS_LOCK_VERSION_ROW_INDEX = 17     # lock version 对应的列
 
 JD_CATEGORY_STORE = "../data/京东分类.xlsx"
 TB_CATEGORY_STORE = "../data/淘宝分类.xlsx"
