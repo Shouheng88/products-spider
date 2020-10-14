@@ -63,9 +63,9 @@ public class JDSpider {
                     String price = item.getElementsByClass("p-price").select("i").text(); // 价格，浮点数
                     String promo = item.getElementsByClass("p-name").select("a").attr("title"); // 提示
                     String name = item.getElementsByClass("p-name").select("a").select("em").text(); // 名称
-                    // 评论的总数没有
+                    // TODO 评论的总数没有
                     String commitLink = item.getElementsByClass("p-commit").select("a").attr("href"); // 评论的地址，没有评论的数量
-                    // 商店信息没有
+                    // 商店信息没有：商店信息从商品详情页获取
                     Elements icons = item.getElementsByClass("p-icons").select("i");
                     icons.forEach(Element::text); // icons
                 }
@@ -97,6 +97,34 @@ public class JDSpider {
             public void onSuccess(String content) {
                 Document document = Jsoup.parse(content);
                 log.debug("Document : {}", document);
+                // 基础参数信息
+                Elements parameterElements = document.getElementsByClass("p-parameter-list").select("li"); // 列出所有的参数
+                for (Element parameterElement : parameterElements) {
+                    String parameterText = parameterElement.text();
+                    String[] parameterParts = parameterText.split("：");
+                    if ("parameter-brand".equals(parameterElement.parent().id())) {
+                        String brand = parameterElement.attr("title");
+                        String brandLink =  parameterElement.select("a").attr("href");
+                    }
+                    if (parameterParts.length > 1) {
+                        String parameterName = parameterParts[0]; // 参数
+                        String paramterValue = parameterParts[1]; // 详情
+                    }
+                }
+                // 包装参数信息
+                Elements pTableElements = document.getElementsByClass("Ptable-item");
+                for (Element pTableElement : pTableElements) {
+                    String groupName = pTableElement.select("h3").text();
+                    Elements groupElements = pTableElement.select("dl > dl");
+                    for (Element groupElement : groupElements) {
+                        String itemName = groupElement.getElementsByTag("dt").text();
+                        String itemValue = groupElement.getElementsByTag("dd").text();
+                    }
+                }
+                // TODO 评论信息，抓不到
+                // 店铺信息
+                String storeName = document.select("[id=popbox]").select("a").first().text();
+                String storeLink = document.select("[id=popbox]").select("a").first().attr("href");
             }
         });
     }
