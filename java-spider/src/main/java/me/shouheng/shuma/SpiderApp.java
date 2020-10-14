@@ -15,6 +15,6 @@ public class SpiderApp {
 
     public static void main(String... args) {
         JDSpider jdSpider = new JDSpider();
-        jdSpider.parseItemPage();
+        jdSpider.parseItemLists();
     }
 }
