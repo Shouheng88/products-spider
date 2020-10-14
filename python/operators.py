@@ -10,12 +10,18 @@ import os
 import codecs
 import xlrd
 import pymysql
+import traceback
+
+from models import GoodsItem
 
 from utils import TimeHelper as TH
+
 from config import CHANNEL_ID_ROW_INDEX as id_idx
 from config import CHANNEL_TREEPATH_ROW_INDEX as treepath_idx
 from config import CHANNEL_LOCK_VERSION_ROW_INDEX as lock_version_idx
+
 from config import GOODS_LINK_ROW_INDEX
+from config import GOODS_ID_ROW_INDEX
 
 class XmlOperator:
     # 初始化
@@ -157,61 +163,108 @@ class DBOperator(object):
         try:
             # 检索到了数据 => 执行批量更新
             if len(rows) != 0:
-                list_2_update = []
+                list_2_update = {} # 已经存在于数据库中的记录 => 用于更新
                 for row in rows:
+                    id = row[GOODS_ID_ROW_INDEX]
                     link = row[GOODS_LINK_ROW_INDEX]
                     if link in links:
-                        deleted_link = links.pop(link) # 移除指定的 key
-                        list_2_update.append(deleted_link)
+                        existed_goods = links.pop(link) # 移除指定的 key
+                        list_2_update[id] = existed_goods
+                # 执行批量更新操作
                 if len(list_2_update) != 0:
-                    
-                    pass
+                    self.__batch_update_goods(list_2_update, cur)
+                    # 如果没有需要插入的记录，就提交事务，下面的逻辑走不到了
+                    if len(links) == 0:
+                        con.commit()
             # 没有检索到数据 => 执行插入操作
-            th = TH()
             if len(links) != 0:
-                sql = "INSERT INTO gt_item (\
-                    name,\
-                    promo,\
-                    link,\
-                    image,\
-                    price,\
-                    price_type,\
-                    icons,\
-                    channel_id,\
-                    channel,\
-                    remark,\
-                    lock_version,\
-                    updated_time,\
-                    created_time\
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
-                values = []
-                for goods_item in links.values():
-                    values.append((
-                        goods_item.name,
-                        goods_item.promo,
-                        goods_item.link,
-                        goods_item.image,
-                        goods_item.price,
-                        goods_item.price_type,
-                        goods_item.icons,
-                        goods_item.channel_id,
-                        goods_item.channel,
-                        '',                     # remark
-                        0,                      # lock_version
-                        int(th.get_current_timestamp()/1000),
-                        int(th.get_current_timestamp()/1000)
-                    ))
-                val = tuple(values)
-                cur.executemany(sql, val)
+                self.__batch_insert_goods(links, cur)
                 con.commit()
         except BaseException as e:
             succeed = False
-            logging.error("Failed While Batch Insert: %s." % str(e))
+            logging.error("Failed While Batch Insert: %s." % traceback.format_exc())
             con.rollback()
         finally:
             cur.close()
             con.close()
         return succeed
+
+    def __batch_insert_goods(self, link_map, cur):
+        '''向数据库中批量插入记录'''
+        th = TH()
+        sql = "INSERT INTO gt_item (\
+            name,\
+            promo,\
+            link,\
+            image,\
+            price,\
+            price_type,\
+            icons,\
+            channel_id,\
+            channel,\
+            remark,\
+            lock_version,\
+            updated_time,\
+            created_time\
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+        values = []
+        for goods_item in link_map.values():
+            values.append((
+                goods_item.name,
+                goods_item.promo,
+                goods_item.link,
+                goods_item.image,
+                goods_item.price,
+                goods_item.price_type,
+                goods_item.icons,
+                goods_item.channel_id,
+                goods_item.channel,
+                '',                     # remark
+                0,                      # lock_version
+                int(th.get_current_timestamp()/1000),
+                int(th.get_current_timestamp()/1000)
+            ))
+        val = tuple(values)
+        cur.executemany(sql, val)
+
+    def __batch_update_goods(self, list_2_update, cur):
+        '''向数据库中批量更新记录'''
+        # 拼接 id
+        val_ids = ""
+        idx_ids = 0
+        for id in list_2_update.keys():
+            if idx_ids == len(list_2_update)-1:
+                val_ids = val_ids + str(id)
+            else:
+                val_ids = val_ids + str(id) + ','
+            idx_ids = idx_ids+1
+        # 拼接 when then 语句
+        when_then_map = {} 
+        for id, goods_item in list_2_update.items():
+            for column_name in ('name', 'promo', 'link', 'image', 'price', 'price_type', 'icons', 'updated_time'):
+                when_then = when_then_map.get(column_name)
+                if when_then == None:
+                    when_then = ''
+                val = goods_item.get_value_of_filed_name(column_name)
+                if isinstance(val, str): # 如果是字符串类型的话，再包一层引号
+                    val = '\'' + val + '\''
+                when_then = when_then + '\n' + ' WHEN ' + str(id) + ' THEN ' + val
+                when_then_map[column_name] = when_then
+        sql_when_then = ''
+        idx_when_then = 0
+        for column_name, when_then in when_then_map.items():
+            if idx_when_then == len(when_then_map)-1:
+                sql_when_then = sql_when_then + column_name + ' = CASE id ' + when_then + '\n END \n'
+            else:
+                sql_when_then = sql_when_then + column_name + ' = CASE id ' + when_then + '\n END, \n'
+            idx_when_then = idx_when_then+1
+        # 拼接最终 sql
+        sql = "UPDATE gt_item SET \n %s WHERE id IN ( %s ) " % (sql_when_then, val_ids)
+        cur.execute(sql)
+
+    def batch_insert_or_update_brands(self, brand_list):
+        '''批量插入或者更新品牌列表'''
+        pass
 
     def write_channel(self, category):
         '''将各个分类数据写入到数据库种'''

@@ -3,11 +3,19 @@
 
 import logging
 import requests
+import re
 from bs4 import BeautifulSoup
+import traceback
+
 from utils import safeGetAttr
 from utils import safeGetText
+
+from models import GoodsItem
+from models import BrandItem
+
 from operators import DBOperator as DB
 from operators import RedisOperator as Redis
+
 from config import CHANNEL_ID_ROW_INDEX
 from config import CHANNEL_NAME_ROW_INDEX
 from config import CHANNEL_JD_URL_ROW_INDEX as jdurl_idx
@@ -51,23 +59,23 @@ class JDGoods(object):
     channel_id = channel[CHANNEL_ID_ROW_INDEX]
     channel_name = channel[CHANNEL_NAME_ROW_INDEX]
     # 抓取分类的信息，也就是第一页的信息
-    (succeed, max_page) = self.__crawl_jd_page(channel_url, channel)
+    (succeed, max_page) = self.__crawl_jd_page(channel_url, channel, True)
     page_count = 1 # 已经抓取的页数
     for page_num in range(1, min(max_page, jd_max_page)):
       page_url = self.__get_page_url_of_page_number(channel_url, page_num)
       # step 1: 从页面上解析最大的页数数据，并且根据该页数的限制进行只爬指定的页数
-      (succeed, _max_page) = self.__crawl_jd_page(page_url, channel)
+      (succeed, _max_page) = self.__crawl_jd_page(page_url, channel, False)
       page_count = page_count + 1
       if succeed:
         logging.info("Succeed To Scrawl Channel %s [%d]," % (channel_name, page_count))
       else:
         logging.error("Failed To Scrawl Channel %s [%d]," % (channel_name, page_count))
-  
+
   def __get_page_url_of_page_number(self, jdurl, page_num):
     '''获取指定品类的指定的页码，用来统一实现获取指定的页码的地址的逻辑'''
     return jdurl + "&page=" + str(page_num)
 
-  def __crawl_jd_page(self, page_url, channel):
+  def __crawl_jd_page(self, page_url, channel, first_page):
     '''京东商品列表信息抓取，最大的页码、产品详情等基础信息'''
     channel_id = channel[CHANNEL_ID_ROW_INDEX]
     channel_name = channel[CHANNEL_NAME_ROW_INDEX]
@@ -75,12 +83,20 @@ class JDGoods(object):
     soup = BeautifulSoup(html, "html.parser")
     (succeed1, max_page) = self.__crawl_jd_max_page(soup)
     (succeed2, goods_list) = self.__crawl_jd_goods_list(soup)
-    # 为爬取到的商品信息添加分类信息
+    (succeed3, brand_list) = self.__crawl_jd_brand_list(soup)
+    # 为爬取到的结果添加分类信息
     for goods_item in goods_list:
       goods_item.channel_id = channel_id
       goods_item.channel = channel_name
+    for brand_item in brand_list:
+      brand_item.channel_id = channel_id
+      brand_item.channel = channel_name
+    # 持久化处理爬取结果
     if succeed2:
       self.__handle_goods_result(goods_list)
+    if succeed3 and first_page:
+      # 对于每个品类，只在爬取第一页的时候更新品牌信息，减少服务器压力
+      self.__handle_brands_result(brand_list)
     return (succeed1 and succeed2, max_page)
 
   def __crawl_jd_max_page(self, soup):
@@ -93,7 +109,7 @@ class JDGoods(object):
       index = pageText.find("/")
       max_page = int(pageText[(index+1):])
     except BaseException as e:
-      logging.error("Error While Getting Page Count : " + str(e))
+      logging.error("Error While Getting Page Count : %s " % traceback.format_exc())
       succeed = False
     # 返回结果
     return (succeed, max_page)
@@ -142,9 +158,35 @@ class JDGoods(object):
         goods_list.append(goods_item)
     except BaseException as e:
       succeed = False
-      logging.error("Error While Getting Goods List : " + str(e))
+      logging.error("Error While Getting Goods List : %s" % traceback.format_exc())
     # 返回结果
     return (succeed, goods_list)
+
+  def __crawl_jd_brand_list(self, soup):
+    '''从页面中解析产品的品牌数据'''
+    succeed = True
+    brand_list = []
+    try:
+      display_order = 0
+      brand_list_tags = soup.find_all(id=re.compile("brand")) # 所有的包含 id 包含 brand 的标签，即品牌
+      for brand_list_tag in brand_list_tags:
+        display_order = display_order + 1
+        data_initial = safeGetAttr(brand_list_tag, "data-initial", "")
+        name = safeGetAttr(brand_list_tag.find("a"), "title", "")
+        link = safeGetAttr(brand_list_tag.find("a"), "href", "")
+        logo = safeGetAttr(brand_list_tag.find("img"), "src", "")
+        # 组装品牌信息
+        brand_item = BrandItem()
+        brand_item.name = name
+        brand_item.data_initial = data_initial
+        brand_item.logo = logo
+        brand_item.link = link
+        brand_item.dispaly_order = display_order
+    except BaseException as e:
+      succeed = False
+      logging.error("Error While Getting Brand List : %s " % traceback.format_exc())
+    # 返回结果
+    return (succeed, brand_list)
 
   def __handle_goods_result(self, goods_list):
     '''处理商品信息爬取结果'''
@@ -155,28 +197,14 @@ class JDGoods(object):
     redis = Redis()
     redis.add_goods_price_histories(goods_list)
 
+  def __handle_brands_result(self, brand_list):
+    '''处理品牌信息的爬取结果'''
+    db = DB()
+    db.batch_insert_or_update_brands(brand_list)
+
   def test(self):
     '''测试入口'''
-    self.__crawl_jd_page("https://list.jd.com/list.html?cat=670%2C686%2C689&page=100", (0, ""))
-
-class GoodsItem(object):
-  '''产品信息包装类'''
-  def __init__(self):
-    super().__init__()
-    self.name = ''        # 名称
-    self.promo = ''       # 提示
-    self.link = ''        # 链接
-    self.image = ''       # 图片链接
-    self.price = 0        # 价格
-    self.price_type = ''  # 价格类型
-    self.icons = ''       # 标签
-    self.commit_link = '' # 评论链接
-    
-    self.channel_id = 0   # 父级信息：分类 id
-    self.channel = ''     # 父级信息：分类 name
-
-  def __str__(self):
-    return self.name + " " + self.price + " " + self.icons
+    self.__crawl_jd_page("https://list.jd.com/list.html?cat=670%2C686%2C689&page=100", (0, ""), True)
 
 if __name__ == "__main__":
   '''调试入口'''

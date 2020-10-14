@@ -4,8 +4,12 @@
 import requests
 import logging
 from bs4 import BeautifulSoup
+
+from models import Category
+
 from operators import ExcelOperator as ExcelOperator
 from operators import DBOperator as DBOperator
+
 from config import JD_CATEGORY_STORE
 from config import JD_HANDLED_CATEGORY_STORE
 from config import TB_CATEGORY_STORE
@@ -105,19 +109,6 @@ class JDCategory(object):
                     if tp_id == -1:
                         logging.error("INSERT INTO DB ERROR!!!!!!")
                         break
-
-class Category(object):
-    '''分类信息封装'''
-    def __init__(self):
-        self.name = ''
-        self.link = ''
-        self.treepath = ''
-        self.parent_id = 0
-        self.jdurl = ''
-        self.tburl = ''
-        self.max_page_count = 0
-        self.display_order = 0
-        self.children = {}
 
 class TBCategory(object):
     '''淘宝分类信息管理类'''
