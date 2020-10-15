@@ -19,7 +19,7 @@ CHANNEL_LOCK_VERSION_ROW_INDEX  = 10
 GOODS_ID_ROW_INDEX              = 0
 GOODS_PRICE_ROW_INDEX           = 5
 GOODS_LINK_ROW_INDEX            = 3
-GOODS_LOCK_VERSION_ROW_INDEX    = 17     # lock version
+GOODS_LOCK_VERSION_ROW_INDEX    = 24     # lock version
 # 品牌的列索引
 BRAND_ID_ROW_INDEX              = 0
 BRAND_LINK_ROW_INDEX            = 4 

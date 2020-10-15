@@ -6,15 +6,16 @@ from utils import get_current_timestamp
 
 class GoodsItem(object):
   '''产品信息包装类'''
-  def __init__(self):
+  def __init__(self, name='', promo='', link='', image='', price=0, price_type='', icons='', venid=''):
     super().__init__()
-    self.name = ''        # 名称
-    self.promo = ''       # 提示
-    self.link = ''        # 链接
-    self.image = ''       # 图片链接
-    self.price = 0        # 价格
-    self.price_type = ''  # 价格类型
-    self.icons = ''       # 标签
+    self.name = name              # 名称
+    self.promo = promo            # 提示
+    self.link = link              # 链接
+    self.image = image            # 图片链接
+    self.price = price            # 价格
+    self.price_type = price_type  # 价格类型
+    self.icons = icons            # 标签
+    self.venid= venid             # 商家 id
 
     self.sku_id = ''
     self.product_id = ''
@@ -70,6 +71,8 @@ class GoodsItem(object):
       return self.good_rate
     if column_name == 'comment_detail':
       return self.get_comment_detail()
+    if column_name == 'vender_id':
+      return self.venid
 
 class GoodsComment(object):
   '''商品的评价封装类'''

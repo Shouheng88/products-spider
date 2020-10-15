@@ -137,21 +137,15 @@ class JDGoods(object):
         img = safeGetAttr(p_img.find("img"), "data-lazy-img", "")
         if img == None:
           img = safeGetAttr(p_img.find("img"), "src", "")
+        vid = safeGetAttr(p_img.find(tag_has_venid_attr), "data-venid", "")
         prince_type = safeGetText(p_price.find("em"), "")
         price = safeGetText(p_price.find("i"), "-1")
         promo = safeGetAttr(p_name.find("a"), "title", "")
         name = safeGetText(p_name.find("a").find("em"), "")
         commit_link = safeGetAttr(p_commit.find("a"), "href", "")
         icons = safeGetText(p_icons.find("i"), "")
-        # 组装产品信息
-        goods_item = GoodsItem()
-        goods_item.name = name
-        goods_item.promo = promo
-        goods_item.link = url
-        goods_item.image = img
-        goods_item.price = int(float(price)*100) # 价格要扩大 100 倍
-        goods_item.price_type = prince_type
-        goods_item.icons = icons
+        # 组装产品信息，价格要扩大 100 倍
+        goods_item = GoodsItem(name, promo, url, img, int(float(price)*100), prince_type, icons, vid)
         goods_list.append(goods_item)
     except BaseException as e:
       succeed = False
@@ -233,6 +227,9 @@ class JDGoods(object):
   def test(self):
     '''测试入口'''
     self.__crawl_jd_page("https://list.jd.com/list.html?cat=670%2C686%2C689&page=100", (0, ""), True)
+
+def tag_has_venid_attr(tag):
+  return tag.has_attr('data-venid')
 
 if __name__ == "__main__":
   '''调试入口'''
