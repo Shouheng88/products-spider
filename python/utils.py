@@ -7,19 +7,19 @@ class TimeHelper(object):
   def __init__(self):
     super().__init__()
 
-  def get_timestamp_of_today_start(self):
-    """
-    获取今天的开始时间的时间戳，就是当前的 0 时 0 分 0 秒的时间，返回的时间戳单位为毫秒
-    """
-    str_today = str(datetime.date.today())
-    str_today_start = str_today + " 0:0:0"
-    return int(time.mktime(time.strptime(str_today_start, "%Y-%m-%d %H:%M:%S")))
+def get_timestamp_of_today_start(self):
+  """
+  获取今天的开始时间的时间戳，就是当前的 0 时 0 分 0 秒的时间，返回的时间戳单位为毫秒
+  """
+  str_today = str(datetime.date.today())
+  str_today_start = str_today + " 0:0:0"
+  return int(time.mktime(time.strptime(str_today_start, "%Y-%m-%d %H:%M:%S")))
 
-  def get_current_timestamp(self):
-    """获取当前的时间戳"""
-    return int(time.time())
+def get_current_timestamp(self):
+  """获取当前的时间戳"""
+  return int(time.time())
 
-  def get_seconds_of_minutes(self, minutes):
+def get_seconds_of_minutes(self, minutes):
     """获取指定的分钟的描述"""
     return minutes * 60
 

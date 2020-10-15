@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from utils import TimeHelper as TH
+from utils import get_current_timestamp
 
 class GoodsItem(object):
   '''产品信息包装类'''
@@ -43,8 +43,7 @@ class GoodsItem(object):
     if column_name == 'channel':
       return self.channel
     if column_name == 'updated_time':
-      th = TH()
-      return th.get_current_timestamp()
+      return get_current_timestamp()
 
 class GoodsParams(object):
   '''产品的品牌信息，这个是解析结果的包装对象'''

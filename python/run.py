@@ -7,7 +7,6 @@ from category import JDCategory as JDCategory
 from category import TBCategory as TBCategory
 from goods import JDGoods as JDGoods
 from operators import DBOperator as DB
-from utils import TimeHelper as TH
 from config import GlobalConfig as Config
 
 def main(argv):

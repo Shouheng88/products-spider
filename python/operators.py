@@ -11,10 +11,12 @@ import codecs
 import xlrd
 import pymysql
 import traceback
+from redis import StrictRedis, ConnectionPool
 
 from models import GoodsItem
-from utils import TimeHelper as TH
-
+from utils import get_current_timestamp
+from utils import get_timestamp_of_today_start
+from utils import get_seconds_of_minutes
 from config import CHANNEL_HANDLE_TIMEOUT_IN_MINUTE
 from config import GOODS_HANDLE_TIMEOUT_IN_MINUTE
 from config import CHANNEL_ID_ROW_INDEX as id_idx
@@ -101,7 +103,6 @@ class DBOperator(object):
     '''
     def __init__(self):
         super().__init__()
-        self.th = TH()
 
     def next_channel_to_handle(self):
         '''获取下一个需要处理的品类，如果返回的结果是 None 就表示这个品类的数据已经爬取完了'''
@@ -109,8 +110,8 @@ class DBOperator(object):
         # 1. updated_time 在今天之前，也就是每天最多爬取一次数据
         # 2. handling_time 在现在 2 分钟之前, 如果 2 分钟还没有完成，说明任务失败了
         # 3. 按照 updated_time 低到高排序，也就是上次完成时间
-        today_starter = self.th.get_timestamp_of_today_start()
-        handling_before = self.th.get_current_timestamp() - th.get_seconds_of_minutes(CHANNEL_HANDLE_TIMEOUT_IN_MINUTE)
+        today_starter =get_timestamp_of_today_start()
+        handling_before = get_current_timestamp() - get_seconds_of_minutes(CHANNEL_HANDLE_TIMEOUT_IN_MINUTE)
         sql = ("SELECT * FROM gt_channel WHERE updated_time < %s and handling_time < %s ORDER BY updated_time")
         val = (today_starter, handling_before)
         con = self.connect_db()
@@ -126,7 +127,7 @@ class DBOperator(object):
                 lock_version = row[lock_version_idx] # 乐观锁
                 # 2. 对数据库进行修改，标记完成时间，同时乐观锁 +1
                 ret = cur.execute("UPDATE gt_channel SET handling_time = %s, lock_version = %s WHERE id = %s and lock_version = %s", 
-                    (th.get_current_timestamp(), lock_version+1, row_id, lock_version))
+                    (get_current_timestamp(), lock_version+1, row_id, lock_version))
                 # 3. 更新成功，表示已经取到任务
                 if ret == 1:
                     channel = row
@@ -225,8 +226,8 @@ class DBOperator(object):
                 goods_item.channel,
                 '',                     # remark
                 0,                      # lock_version
-                int(self.th.get_current_timestamp()/1000),
-                int(self.th.get_current_timestamp()/1000)
+                int(get_current_timestamp()),
+                int(get_current_timestamp())
             ))
         val = tuple(values)
         cur.executemany(sql, val)
@@ -293,7 +294,7 @@ class DBOperator(object):
         for name, value in fileds_to_update.items():
             sql_part = sql_part + name + " = '" + value + "',"
         sql_part = sql_part + ' lock_version = ' + str((lock_version + 1)) + ', '
-        sql_part = sql_part + ' updated_time = ' + str(self.th.get_current_timestamp())
+        sql_part = sql_part + ' updated_time = ' + str(get_current_timestamp())
         sql = "UPDATE gt_item SET %s WHERE id = %s and lock_version = %s" % (sql_part, goods_id, lock_version)
         succeed = True
         try:
@@ -423,8 +424,8 @@ class DBOperator(object):
                 brand.channel,
                 '',                     # remark
                 0,                      # lock_version
-                int(self.th.get_current_timestamp()/1000),
-                int(self.th.get_current_timestamp()/1000)
+                int(get_current_timestamp()),
+                int(get_current_timestamp())
             ))
         val = tuple(values)
         cur.executemany(sql, val)
@@ -470,8 +471,8 @@ class DBOperator(object):
 
     def next_item_to_handle(self):
         '''从商品列表中取出下一个需要解析的商品，设计的逻辑参考品类爬取相关的逻辑'''
-        today_starter = self.th.get_timestamp_of_today_start()
-        handling_before = self.th.get_current_timestamp() - th.get_seconds_of_minutes(GOODS_HANDLE_TIMEOUT_IN_MINUTE)
+        today_starter = get_timestamp_of_today_start()
+        handling_before = get_current_timestamp() - get_seconds_of_minutes(GOODS_HANDLE_TIMEOUT_IN_MINUTE)
         sql = ("SELECT * FROM gt_item WHERE updated_time < %s and handling_time < %s ORDER BY updated_time")
         val = (today_starter, handling_before)
         con = self.connect_db()
@@ -485,7 +486,7 @@ class DBOperator(object):
             lock_version = row[GOODS_LOCK_VERSION_ROW_INDEX]
             # 尝试锁任务
             ret = cur.execute("UPDATE gt_item SET handling_time = %s, lock_version = %s WHERE id = %s and lock_version = %s", 
-                (th.get_current_timestamp(), lock_version+1, row_id, lock_version))
+                (get_current_timestamp(), lock_version+1, row_id, lock_version))
             if ret == 1:
                 goods_item = row
                 break
@@ -506,3 +507,9 @@ class RedisOperator(object):
     def add_goods_price_histories(self, goods_list):
         '''添加商品的历史价格信息'''
         pass
+
+    def connect_redis(self):
+        '''连接 Redis'''
+        return StrictRedis(connection_pool=pool)
+
+pool = ConnectionPool(host='localhost', port=6379, db=0, password='foobared')
