@@ -72,6 +72,17 @@ class BrandItem(object):
     self.channel_id = 0     # 品类信息
     self.channel = ''
 
+  def get_value_of_filed_name(self, column_name):
+    '''根据数据库列的名称获取对应的字段信息'''
+    if column_name == 'name':
+      return self.name
+    if column_name == 'data_initial':
+      return self.data_initial
+    if column_name == 'logo':
+      return self.logo
+    if column_name == 'link':
+      return self.link
+
 class Category(object):
   '''分类信息封装'''
   def __init__(self):

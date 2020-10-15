@@ -187,6 +187,7 @@ class JDGoods(object):
         brand_item.logo = logo
         brand_item.link = link
         brand_item.dispaly_order = display_order
+        brand_list.append(brand_item)
     except BaseException as e:
       succeed = False
       logging.error("Error While Getting Brand List : %s " % traceback.format_exc())

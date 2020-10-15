@@ -19,6 +19,9 @@ GOODS_ID_ROW_INDEX = 0                # 商品的列信息，对应的数据库�
 GOODS_LINK_ROW_INDEX = 3
 GOODS_LOCK_VERSION_ROW_INDEX = 17     # lock version 对应的列
 
+BRAND_ID_ROW_INDEX = 0                # 商品品牌的列信息
+BRAND_LINK_ROW_INDEX = 4              # 商品的链接的列信息
+
 JD_CATEGORY_STORE = "../data/京东分类.xlsx"
 TB_CATEGORY_STORE = "../data/淘宝分类.xlsx"
 JD_HANDLED_CATEGORY_STORE = "../data/京东分类-处理.xlsx"
