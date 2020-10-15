@@ -6,22 +6,16 @@ import requests
 import re
 from bs4 import BeautifulSoup
 import traceback
+import json
 
-from utils import safeGetAttr
-from utils import safeGetText
-
-from models import GoodsItem
-from models import BrandItem
-
+from utils import *
+from models import *
+from config import *
 from operators import redisOperator as redis
 from operators import dBOperator as db
-from config import CHANNEL_ID_ROW_INDEX
-from config import CHANNEL_NAME_ROW_INDEX
-from config import CHANNEL_JD_URL_ROW_INDEX as jdurl_idx
-from config import JD_MAX_SEARCH_PAGE as jd_max_page
-from config import GlobalConfig as Config
-from config import REQUEST_HEADERS
 
+# TODO 还要处理商品下架\无货的情况
+# TODO 处理满减信息
 class JDGoods(object):
   '''京东商品信息爬取。这个类主要用来从商品列表中抓取商品的价格等基础信息（不包含商品的具体的参数信息）'''
   def __init__(self):
@@ -53,14 +47,14 @@ class JDGoods(object):
 
   def __crawl_jd_channel(self, channel):
     '''爬取指定的品类的所有的信息'''
-    channel_url = channel[jdurl_idx]
+    channel_url = channel[CHANNEL_JD_URL_ROW_INDEX]
     channel_id = channel[CHANNEL_ID_ROW_INDEX]
     channel_name = channel[CHANNEL_NAME_ROW_INDEX]
     # TODO 要爬取的最大的页数，数据库中也有一个对应的记录 
     # 抓取分类的信息，也就是第一页的信息
     (succeed, max_page) = self.__crawl_jd_page(channel_url, channel, True)
     page_count = 1 # 已经抓取的页数
-    for page_num in range(1, min(max_page, jd_max_page)):
+    for page_num in range(1, min(max_page, JD_MAX_SEARCH_PAGE)):
       page_url = self.__get_page_url_of_page_number(channel_url, page_num)
       # step 1: 从页面上解析最大的页数数据，并且根据该页数的限制进行只爬指定的页数
       (succeed, _max_page) = self.__crawl_jd_page(page_url, channel, False)
@@ -92,6 +86,8 @@ class JDGoods(object):
       brand_item.channel = channel_name
     # 持久化处理爬取结果
     if succeed2:
+      # 爬取京东商品的评论信息
+      self.__crawl_jd_comment_info(goods_list)
       # 首先将商品列表信息更新数据库当中
       db.batch_insert_or_update_goods(goods_list)
       # 然后将价格历史记录到 Redis 中，Redis 的操作应该放在 DB 之后，因为我们要用到数据库记录的主键
@@ -105,7 +101,7 @@ class JDGoods(object):
     '''解析京东的最大页数'''
     # 解析最大页码
     succeed = True
-    max_page = jd_max_page
+    max_page = JD_MAX_SEARCH_PAGE
     try:
       pageText = soup.find(id="J_topPage").find("span").text
       index = pageText.find("/")
@@ -142,7 +138,7 @@ class JDGoods(object):
         if img == None:
           img = safeGetAttr(p_img.find("img"), "src", "")
         prince_type = safeGetText(p_price.find("em"), "")
-        price = safeGetText(p_price.find("i"), "")
+        price = safeGetText(p_price.find("i"), "-1")
         promo = safeGetAttr(p_name.find("a"), "title", "")
         name = safeGetText(p_name.find("a").find("em"), "")
         commit_link = safeGetAttr(p_commit.find("a"), "href", "")
@@ -153,10 +149,9 @@ class JDGoods(object):
         goods_item.promo = promo
         goods_item.link = url
         goods_item.image = img
-        goods_item.price = price
+        goods_item.price = int(float(price)*100) # 价格要扩大 100 倍
         goods_item.price_type = prince_type
         goods_item.icons = icons
-        goods_item.commit_link = commit_link
         goods_list.append(goods_item)
     except BaseException as e:
       succeed = False
@@ -191,13 +186,57 @@ class JDGoods(object):
     # 返回结果
     return (succeed, brand_list)
 
+  def __crawl_jd_comment_info(self, goods_list):
+    '''爬取京东商品的评论信息'''
+    # 组装数据
+    sku_ids = ''
+    sku_id_map = {}
+    for idx in range(0, len(goods_list)):
+      goods_item = goods_list[idx]
+      last_split = goods_item.link.rfind("/")
+      last_point = goods_item.link.rfind(".")
+      if last_point != None and last_split != None:
+        sku_id = goods_item.link[(last_split+1):last_point]
+        sku_id_map[sku_id] = goods_item
+      sku_ids = sku_ids + sku_id
+      if idx != len(goods_list)-1:
+        sku_ids = sku_ids + ","
+    if len(sku_ids) != 0:
+      # 请求评论信息
+      json_comments = requests.get("https://club.jd.com/comment/productCommentSummaries.action?referenceIds=" + sku_ids, headers=REQUEST_HEADERS).text
+      comments = json.loads(json_comments).get("CommentsCount")
+      for comment in comments:
+        sku_id = comment.get("SkuId")                         # sku id *
+        productId = comment.get("ProductId")                  # prodcut id *
+        commentCount = comment.get("CommentCount")            # 评论数量 *
+        averageScore = comment.get("AverageScore")            # 平均得分 *
+        goodRate = comment.get("GoodRate")                    # 好评百分比，诸如 0.98，综合评价 *
+        defaultGoodCount = comment.get("DefaultGoodCount")    # 默认好评
+        goodCount = comment.get("GoodCount")                  # 好评数量
+        generalCount = comment.get("GeneralCount")            # 中评数量
+        poorCount = comment.get("PoorCount")                  # 差评数量
+        videoCount = comment.get("VideoCount")                # 视频晒单数量
+        afterCount = comment.get("AfterCount")                # 追评
+        oneYear = comment.get("OneYear")                      # 一年之后评论
+        showCount = comment.get("ShowCount")                  # show count
+        # 获取商品条目
+        goods_item = sku_id_map.get(str(sku_id))
+        if goods_item != None:
+          goods_item.sku_id = sku_id
+          goods_item.product_id = productId
+          goods_item.comment_count = commentCount
+          goods_item.average_score = averageScore
+          goods_item.good_rate = int(goodRate*100)
+          goods_comment = GoodsComment(defaultGoodCount, goodCount, generalCount, poorCount, videoCount, afterCount, oneYear, showCount)
+          goods_item.comment = goods_comment
+
   def test(self):
     '''测试入口'''
     self.__crawl_jd_page("https://list.jd.com/list.html?cat=670%2C686%2C689&page=100", (0, ""), True)
 
 if __name__ == "__main__":
   '''调试入口'''
-  config = Config()
+  config = GlobalConfig()
   config.config_logging()
   gd = JDGoods()
   gd.test()

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import json
 from utils import get_current_timestamp
 
 class GoodsItem(object):
@@ -14,13 +15,26 @@ class GoodsItem(object):
     self.price = 0        # 价格
     self.price_type = ''  # 价格类型
     self.icons = ''       # 标签
-    self.commit_link = '' # 评论链接
-    
+
+    self.sku_id = ''
+    self.product_id = ''
+    self.comment_count = 0
+    self.average_score = 0
+    self.good_rate = 0    # 数值扩大 100 倍
+    self.comment = None
+
     self.channel_id = 0   # 父级信息：分类 id
     self.channel = ''     # 父级信息：分类 name
 
   def __str__(self):
-    return self.name + " " + self.price + " " + self.icons
+    return "Goods: (%s, %s, %s, %s, %s, %s)" % (self.name, self.price, self.icons, self.sku_id, self.product_id, self.comment)
+
+  def get_comment_detail(self):
+    '''获取对应的评论的 json 字符串'''
+    ret = ''
+    if self.comment != None:
+      ret = self.comment.to_json()
+    return ret
 
   def get_value_of_filed_name(self, column_name):
     '''根据数据库列的名称取出对应的字段'''
@@ -44,6 +58,50 @@ class GoodsItem(object):
       return self.channel
     if column_name == 'updated_time':
       return get_current_timestamp()
+    if column_name == 'sku_id':
+      return self.sku_id
+    if column_name == 'product_id':
+      return self.product_id
+    if column_name == 'comment_count':
+      return self.comment_count
+    if column_name == 'average_score':
+      return self.average_score
+    if column_name == 'good_rate':
+      return self.good_rate
+    if column_name == 'comment_detail':
+      return self.get_comment_detail()
+
+class GoodsComment(object):
+  '''商品的评价封装类'''
+  def __init__(self, defaultGood, good, general, poor, video, after, oneYear, show):
+    super().__init__()
+    self.defaultGoodCount = defaultGood
+    self.goodCount = good
+    self.generalCount = general
+    self.poorCount = poor
+    self.videoCount = video
+    self.afterCount = after
+    self.oneYear = oneYear
+    self.showCount = show
+
+  def __str__(self):
+    return "Comment: (%d, %d, %d, %d, %d, %d, %d, %d)" % (self.defaultGoodCount, self.goodCount, self.generalCount, self.poorCount, self.videoCount, self.afterCount, self.oneYear, self.showCount)
+
+  def to_json(self):
+    '''获取对应的 json 字符串'''
+    return json.dumps(self, default=goodsComment2Dict)
+
+def goodsComment2Dict(comment):
+  return {
+    "defaultGoodCount": comment.defaultGoodCount,
+    "goodCount": comment.goodCount,
+    "generalCount": comment.generalCount,
+    "poorCount": comment.poorCount,
+    "videoCount": comment.videoCount,
+    "afterCount": comment.afterCount,
+    "oneYear": comment.oneYear,
+    "showCount": comment.showCount  
+  }
 
 class GoodsParams(object):
   '''产品的品牌信息，这个是解析结果的包装对象'''

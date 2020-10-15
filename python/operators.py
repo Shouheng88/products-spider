@@ -192,7 +192,7 @@ class DBOperator(object):
                 con.commit()
         except BaseException as e:
             succeed = False
-            logging.error("Failed While Batch Insert: %s." % traceback.format_exc())
+            logging.error("Failed While Batch Insert: \n%s" % traceback.format_exc())
             con.rollback()
         finally:
             cur.close()
@@ -201,38 +201,19 @@ class DBOperator(object):
 
     def __batch_insert_goods(self, link_map, cur):
         '''向数据库中批量插入记录'''
-        sql = "INSERT INTO gt_item (\
-            name,\
-            promo,\
-            link,\
-            image,\
-            price,\
-            price_type,\
-            icons,\
-            channel_id,\
-            channel,\
-            remark,\
-            lock_version,\
-            updated_time,\
-            created_time\
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
         values = []
         for goods_item in link_map.values():
-            values.append((
-                goods_item.name,
-                goods_item.promo,
-                goods_item.link,
-                goods_item.image,
-                goods_item.price,
-                goods_item.price_type,
-                goods_item.icons,
-                goods_item.channel_id,
-                goods_item.channel,
-                '',                     # remark
-                0,                      # lock_version
-                int(get_current_timestamp()),
-                int(get_current_timestamp())
-            ))
+            sql = "INSERT INTO gt_item (\
+            name, promo, link, image, price, price_type, icons, channel_id,\
+            channel, lock_version, updated_time, created_time,\
+            sku_id, product_id, comment_count, average_score, good_rate, comment_detail\
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+            values.append((goods_item.name, goods_item.promo, goods_item.link, 
+                goods_item.image, goods_item.price, goods_item.price_type,
+                goods_item.icons, goods_item.channel_id, goods_item.channel,
+                0, int(get_current_timestamp()), int(get_current_timestamp()),
+                goods_item.sku_id, goods_item.product_id, goods_item.comment_count, 
+                goods_item.average_score, goods_item.good_rate, goods_item.get_comment_detail()))
         val = tuple(values)
         cur.executemany(sql, val)
 
@@ -250,7 +231,7 @@ class DBOperator(object):
         # 拼接 when then 语句
         when_then_map = {} 
         for id, goods_item in list_2_update.items():
-            for column_name in ('name', 'promo', 'link', 'image', 'price', 'price_type', 'icons', 'updated_time'):
+            for column_name in ('name', 'promo', 'link', 'image', 'price', 'price_type', 'icons', 'updated_time', 'sku_id', 'product_id', 'comment_count', 'average_score', 'good_rate', 'comment_detail'):
                 when_then = when_then_map.get(column_name)
                 if when_then == None:
                     when_then = ''
