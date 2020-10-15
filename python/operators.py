@@ -14,19 +14,8 @@ import traceback
 from redis import StrictRedis, ConnectionPool
 
 from models import GoodsItem
-from utils import get_current_timestamp
-from utils import get_timestamp_of_today_start
-from utils import get_seconds_of_minutes
-from config import CHANNEL_HANDLE_TIMEOUT_IN_MINUTE
-from config import GOODS_HANDLE_TIMEOUT_IN_MINUTE
-from config import CHANNEL_ID_ROW_INDEX as id_idx
-from config import CHANNEL_TREEPATH_ROW_INDEX as treepath_idx
-from config import CHANNEL_LOCK_VERSION_ROW_INDEX as lock_version_idx
-from config import GOODS_ID_ROW_INDEX
-from config import GOODS_LINK_ROW_INDEX
-from config import GOODS_LOCK_VERSION_ROW_INDEX
-from config import BRAND_ID_ROW_INDEX
-from config import BRAND_LINK_ROW_INDEX
+from utils import *
+from config import *
 
 class XmlOperator(object):
     # 初始化
@@ -122,9 +111,9 @@ class DBOperator(object):
         channel = None
         for row in rows:
             # 1. 对品来进行过滤，只需要对三级品类进行过滤，包含 两个 | 的时候代表三级品类
-            if len(row[treepath_idx].split("|")) == 3:
-                row_id = row[treepath_idx] # 记录 id
-                lock_version = row[lock_version_idx] # 乐观锁
+            if len(row[CHANNEL_TREEPATH_ROW_INDEX].split("|")) == 3:
+                row_id = row[CHANNEL_TREEPATH_ROW_INDEX] # 记录 id
+                lock_version = row[CHANNEL_LOCK_VERSION_ROW_INDEX] # 乐观锁
                 # 2. 对数据库进行修改，标记完成时间，同时乐观锁 +1
                 ret = cur.execute("UPDATE gt_channel SET handling_time = %s, lock_version = %s WHERE id = %s and lock_version = %s", 
                     (get_current_timestamp(), lock_version+1, row_id, lock_version))
@@ -146,27 +135,42 @@ class DBOperator(object):
         '''
         pass
 
+    def get_goods_list_from_database(self, goods_list):
+        '''从数据库中查询指定的商品列表的商品信息'''
+        rows = ()
+        if len(goods_list) == 0:
+            return rows
+        val = ""
+        for idx in range(0, len(goods_list)):
+            link = goods_list[idx].link
+            val = val + "'" + link + "'"
+            if idx != len(goods_list)-1:
+                val = val + ","
+        sql = "SELECT * FROM gt_item WHERE link IN (%s)" % val
+        try:
+            con = self.connect_db()
+            cur = con.cursor()
+            cur.execute(sql)
+            rows = cur.fetchall()
+        except:
+            logging.error("Failed When Fetching Goods From Database.")
+        finally:
+            cur.close()
+            con.close()
+        return rows
+
     def batch_insert_or_update_goods(self, goods_list):
         '''批量向数据库当中插入数据或者更新数据当中的记录'''
-        if len(goods_list) == 0:
-            logging.warning("Empty Groods List.")
-            return False
-        # 先查询指定的 link 的记录
-        val = ""
         links = {}
         for idx in range(0, len(goods_list)):
             link = goods_list[idx].link
             links[link] = goods_list[idx]
-            val = val + "'" + link + "'"
-            if idx != len(goods_list)-1:
-                val = val + ","
-        sql = ("SELECT * FROM gt_item WHERE link IN (%s)")
         succeed = True
+        # 从数据库中按照连接查询商品列表
+        rows = self.get_goods_list_from_database(goods_list)
         try:
             con = self.connect_db()
             cur = con.cursor()
-            cur.execute(sql % val)
-            rows = cur.fetchall()
             # 检索到了数据 => 执行批量更新
             if len(rows) != 0:
                 list_2_update = {} # 已经存在于数据库中的记录 => 用于更新
@@ -503,13 +507,23 @@ class RedisOperator(object):
     '''Redis 操作的封装类'''
     def __init__(self):
         super().__init__()
+        self.r = self.connect_redis()
 
     def add_goods_price_histories(self, goods_list):
         '''添加商品的历史价格信息'''
-        pass
+        today = get_timestamp_of_today_start()
+        rows = dBOperator.get_goods_list_from_database(goods_list)
+        for row in rows:
+            goods_id = row[GOODS_ID_ROW_INDEX]
+            price = row[GOODS_PRICE_ROW_INDEX]
+            key = GOODS_PRICE_HISTORY_REDIS_KEY_PATTERN % goods_id
+            succeed = self.r.hset(key, str(today), price)
 
     def connect_redis(self):
         '''连接 Redis'''
+        pool = ConnectionPool(host='localhost', port=6379, db=0, password='')
         return StrictRedis(connection_pool=pool)
 
-pool = ConnectionPool(host='localhost', port=6379, db=0, password='foobared')
+redisOperator = RedisOperator()
+
+dBOperator = DBOperator()

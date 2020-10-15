@@ -81,6 +81,8 @@ class BrandItem(object):
       return self.logo
     if column_name == 'link':
       return self.link
+    if column_name == 'updated_time':
+      return get_current_timestamp()
 
 class Category(object):
   '''分类信息封装'''

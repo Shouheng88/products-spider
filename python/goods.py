@@ -13,9 +13,8 @@ from utils import safeGetText
 from models import GoodsItem
 from models import BrandItem
 
-from operators import DBOperator as DB
-from operators import RedisOperator as Redis
-
+from operators import redisOperator as redis
+from operators import dBOperator as db
 from config import CHANNEL_ID_ROW_INDEX
 from config import CHANNEL_NAME_ROW_INDEX
 from config import CHANNEL_JD_URL_ROW_INDEX as jdurl_idx
@@ -36,7 +35,6 @@ class JDGoods(object):
     当然也可能存在一遍执行了多天的情形。这种情况，我们也只爬一遍。
     '''
     job_no = 0 # job 编号
-    db = DB()
     while True:      
       channel = db.next_channel_to_handle()
       # 没有需要爬取的任务了
@@ -58,6 +56,7 @@ class JDGoods(object):
     channel_url = channel[jdurl_idx]
     channel_id = channel[CHANNEL_ID_ROW_INDEX]
     channel_name = channel[CHANNEL_NAME_ROW_INDEX]
+    # TODO 要爬取的最大的页数，数据库中也有一个对应的记录 
     # 抓取分类的信息，也就是第一页的信息
     (succeed, max_page) = self.__crawl_jd_page(channel_url, channel, True)
     page_count = 1 # 已经抓取的页数
@@ -92,12 +91,10 @@ class JDGoods(object):
       brand_item.channel_id = channel_id
       brand_item.channel = channel_name
     # 持久化处理爬取结果
-    db = DB()
     if succeed2:
       # 首先将商品列表信息更新数据库当中
       db.batch_insert_or_update_goods(goods_list)
-      # 然后将价格历史记录到 Redis 中
-      redis = Redis()
+      # 然后将价格历史记录到 Redis 中，Redis 的操作应该放在 DB 之后，因为我们要用到数据库记录的主键
       redis.add_goods_price_histories(goods_list)
     if succeed3 and first_page:
       # 对于每个品类，只在爬取第一页的时候更新品牌信息，减少服务器压力

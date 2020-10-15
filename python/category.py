@@ -8,7 +8,7 @@ from bs4 import BeautifulSoup
 from models import Category
 
 from operators import ExcelOperator as ExcelOperator
-from operators import DBOperator as DBOperator
+from operators import DBOperator as db
 
 from config import JD_CATEGORY_STORE
 from config import JD_HANDLED_CATEGORY_STORE
@@ -87,7 +87,6 @@ class JDCategory(object):
                 for t_name, t_channel in s_channel.children.items(): # 三级品类遍历
                     logging.debug("%s - %s - %s", c_name, s_name, t_name)
         # 写入 DB
-        db = DBOperator()
         for c_name, c_channel in dist.items(): # 一级品类遍历
             p_id = db.write_channel(c_channel)
             if p_id == -1:

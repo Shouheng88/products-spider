@@ -7,7 +7,7 @@ import re
 from bs4 import BeautifulSoup
 import traceback
 
-from operators import DBOperator as DB
+from operators import dBOperator as db
 from models import GoodsParams
 from utils import safeGetAttr
 from utils import safeGetText
@@ -22,13 +22,12 @@ class JDDetails(object):
   两个可以同时放在一起来完成，这样更符合真实的应用请求的效果。'''
   def __init__(self):
     super().__init__()
-    self.db = DB()
 
   def crawl(self):
     '''爬取商品的详情信息，设计的逻辑同商品的列表页面'''
     job_no = 0
     while True:
-      goods_item = self.db.next_item_to_handle()
+      goods_item = db.next_item_to_handle()
       if goods_item == None:
         break
       job_no = job_no + 1
@@ -43,7 +42,7 @@ class JDDetails(object):
     goods_params = self.__crawl_from_page(goods_item)
     self.__crawl_from_request(goods_item)
     # 更新到数据库当中
-    self.db.update_goods_parames_and_mark_done(goods_item, goods_params)
+    db.update_goods_parames_and_mark_done(goods_item, goods_params)
 
   def __crawl_from_request(self, goods_item):
     '''使用请求的链接来获取商品的详情信息'''

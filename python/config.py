@@ -3,29 +3,36 @@
 
 import logging
 
-CRAWL_SLEEP_TIME_INTERVAL = 1500      # 爬虫的睡眠时间
+# 爬虫相关的配置
+CRAWL_SLEEP_TIME_INTERVAL         = 1500  # 爬虫的睡眠时间（毫秒）
+JD_MAX_SEARCH_PAGE                = 60    # 爬虫默认最大爬取的页数
+CHANNEL_HANDLE_TIMEOUT_IN_MINUTE  = 2     # 分类处理的超时时间，超时完不成则认为失败
+GOODS_HANDLE_TIMEOUT_IN_MINUTE    = 2     # 产品超时时间，同上
 
-JD_MAX_SEARCH_PAGE = 100
-CHANNEL_HANDLE_TIMEOUT_IN_MINUTE = 2  # 分类处理的超时时间，超时完不成则认为失败
-GOODS_HANDLE_TIMEOUT_IN_MINUTE = 2    # 产品超时时间，同上
+# 分类的列索引
+CHANNEL_ID_ROW_INDEX            = 0
+CHANNEL_NAME_ROW_INDEX          = 1
+CHANNEL_TREEPATH_ROW_INDEX      = 3
+CHANNEL_JD_URL_ROW_INDEX        = 4
+CHANNEL_LOCK_VERSION_ROW_INDEX  = 10
+# 商品的列索引
+GOODS_ID_ROW_INDEX              = 0
+GOODS_PRICE_ROW_INDEX           = 5
+GOODS_LINK_ROW_INDEX            = 3
+GOODS_LOCK_VERSION_ROW_INDEX    = 17     # lock version
+# 品牌的列索引
+BRAND_ID_ROW_INDEX              = 0
+BRAND_LINK_ROW_INDEX            = 4 
 
-CHANNEL_ID_ROW_INDEX = 0              # 分类的列信息，对应的数据库字段的索引
-CHANNEL_NAME_ROW_INDEX = 1
-CHANNEL_TREEPATH_ROW_INDEX = 3
-CHANNEL_JD_URL_ROW_INDEX = 4
-CHANNEL_LOCK_VERSION_ROW_INDEX = 10
+# Redis 相关的键信息
+GOODS_PRICE_HISTORY_REDIS_KEY_PATTERN = "GOODS:PRICE:HISTORY:%d"  # 商品历史价格的 Redis 键的格式
 
-GOODS_ID_ROW_INDEX = 0                # 商品的列信息，对应的数据库字段的索引
-GOODS_LINK_ROW_INDEX = 3
-GOODS_LOCK_VERSION_ROW_INDEX = 17     # lock version 对应的列
-
-BRAND_ID_ROW_INDEX = 0                # 商品品牌的列信息
-BRAND_LINK_ROW_INDEX = 4              # 商品的链接的列信息
-
+# 处理的分类的文件位置
 JD_CATEGORY_STORE = "../data/京东分类.xlsx"
 TB_CATEGORY_STORE = "../data/淘宝分类.xlsx"
 JD_HANDLED_CATEGORY_STORE = "../data/京东分类-处理.xlsx"
 
+# 请求头
 REQUEST_HEADERS = {
       "Accept" : "application/jason, text/javascript, */*; q = 0.01",
       "X-Request-With" : "XMLHttpRequest",
