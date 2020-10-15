@@ -5,9 +5,11 @@ import logging
 
 # 爬虫相关的配置
 CRAWL_SLEEP_TIME_INTERVAL         = 1500  # 爬虫的睡眠时间（毫秒）
-JD_MAX_SEARCH_PAGE                = 60    # 爬虫默认最大爬取的页数
+JD_MAX_SEARCH_PAGE                = 100    # 爬虫默认最大爬取的页数
 CHANNEL_HANDLE_TIMEOUT_IN_MINUTE  = 2     # 分类处理的超时时间，超时完不成则认为失败
 GOODS_HANDLE_TIMEOUT_IN_MINUTE    = 2     # 产品超时时间，同上
+PRICES_HANDLE_TIMEOUT_IN_MINUTE   = 2
+PRICES_HANDLE_PER_PAGE_SIZE       = 30
 
 # 分类的列索引
 CHANNEL_ID_ROW_INDEX            = 0
@@ -19,6 +21,7 @@ CHANNEL_LOCK_VERSION_ROW_INDEX  = 10
 GOODS_ID_ROW_INDEX              = 0
 GOODS_PRICE_ROW_INDEX           = 5
 GOODS_LINK_ROW_INDEX            = 3
+GOODS_SKU_ID_ROW_INDEX          = 10
 GOODS_LOCK_VERSION_ROW_INDEX    = 24     # lock version
 # 品牌的列索引
 BRAND_ID_ROW_INDEX              = 0

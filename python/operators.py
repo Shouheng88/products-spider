@@ -101,7 +101,7 @@ class DBOperator(object):
         # 3. 按照 updated_time 低到高排序，也就是上次完成时间
         today_starter =get_timestamp_of_today_start()
         handling_before = get_current_timestamp() - get_seconds_of_minutes(CHANNEL_HANDLE_TIMEOUT_IN_MINUTE)
-        sql = ("SELECT * FROM gt_channel WHERE updated_time < %s and handling_time < %s ORDER BY updated_time")
+        sql = ("SELECT * FROM gt_channel WHERE updated_time < %s AND handling_time < %s ORDER BY updated_time LIMIT 1")
         val = (today_starter, handling_before)
         con = self.connect_db()
         cur = con.cursor()
@@ -115,7 +115,7 @@ class DBOperator(object):
                 row_id = row[CHANNEL_TREEPATH_ROW_INDEX] # 记录 id
                 lock_version = row[CHANNEL_LOCK_VERSION_ROW_INDEX] # 乐观锁
                 # 2. 对数据库进行修改，标记完成时间，同时乐观锁 +1
-                ret = cur.execute("UPDATE gt_channel SET handling_time = %s, lock_version = %s WHERE id = %s and lock_version = %s", 
+                ret = cur.execute("UPDATE gt_channel SET handling_time = %s, lock_version = %s WHERE id = %s AND lock_version = %s", 
                     (get_current_timestamp(), lock_version+1, row_id, lock_version))
                 # 3. 更新成功，表示已经取到任务
                 if ret == 1:
@@ -205,13 +205,13 @@ class DBOperator(object):
         for goods_item in link_map.values():
             sql = "INSERT INTO gt_item (\
             name, promo, link, image, price, price_type, icons, channel_id,\
-            channel, lock_version, updated_time, created_time,\
+            channel, lock_version, updated_time, created_time, handling_time,\
             sku_id, product_id, comment_count, average_score, good_rate, comment_detail, vender_id\
             ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
             values.append((goods_item.name, goods_item.promo, goods_item.link, 
                 goods_item.image, goods_item.price, goods_item.price_type,
                 goods_item.icons, goods_item.channel_id, goods_item.channel,
-                0, int(get_current_timestamp()), int(get_current_timestamp()),
+                0, int(get_current_timestamp()), int(get_current_timestamp()), 0, # 将 handling_time 置为 0
                 goods_item.sku_id, goods_item.product_id, goods_item.comment_count, 
                 goods_item.average_score, goods_item.good_rate, goods_item.get_comment_detail(), goods_item.venid))
         val = tuple(values)
@@ -231,7 +231,8 @@ class DBOperator(object):
         # 拼接 when then 语句
         when_then_map = {} 
         for id, goods_item in list_2_update.items():
-            for column_name in ('name', 'promo', 'link', 'image', 'price', 'price_type', 'icons', 'updated_time', 'sku_id', 'product_id', 'comment_count', 'average_score', 'good_rate', 'comment_detail', 'vender_id'):
+            for column_name in ('name', 'promo', 'link', 'image', 'price', 'price_type', 'icons', 'updated_time', \
+                'sku_id', 'product_id', 'comment_count', 'average_score', 'good_rate', 'comment_detail', 'vender_id'):
                 when_then = when_then_map.get(column_name)
                 if when_then == None:
                     when_then = ''
@@ -454,11 +455,13 @@ class DBOperator(object):
             con.close()
         return row_id
 
-    def next_item_to_handle(self):
-        '''从商品列表中取出下一个需要解析的商品，设计的逻辑参考品类爬取相关的逻辑'''
+    def next_goods_to_handle_prameters(self):
+        '''从商品列表中取出下一个需要解析的商品，设计的逻辑参考品类爬取相关的逻辑
+        该方法现在只应用于查询商品的参数信息，现在的逻辑是每个产品只查询一次参数信息'''
         today_starter = get_timestamp_of_today_start()
         handling_before = get_current_timestamp() - get_seconds_of_minutes(GOODS_HANDLE_TIMEOUT_IN_MINUTE)
-        sql = ("SELECT * FROM gt_item WHERE updated_time < %s and handling_time < %s ORDER BY updated_time")
+        # 查询的时候增加 parameters 条件，也即只有当参数为空的时候才爬取，每个产品只爬取一次
+        sql = ("SELECT * FROM gt_item WHERE updated_time < %s and handling_time < %s and parameters = null ORDER BY updated_time LIMIt 1")
         val = (today_starter, handling_before)
         con = self.connect_db()
         cur = con.cursor()
@@ -479,6 +482,48 @@ class DBOperator(object):
         cur.close()
         con.close()
         return goods_item
+
+    def next_goods_page_to_handle_prices(self):
+        '''从商品列表中按照页的方式来解析商品的价格信息
+        返回信息包含两个字段，task_done 表示任务是否已完成，其二返回的是数据列表
+        如果 task_done=True 则表示没有需要处理的任务了；否则表示有任务需要处理，
+        而如果 goods_list 是空的话，只能表示更新数据库的时候失败了，此时应该进行重试'''
+        today_starter = get_timestamp_of_today_start()*2 # TODO 移除测试
+        handling_before = get_current_timestamp() - get_seconds_of_minutes(PRICES_HANDLE_TIMEOUT_IN_MINUTE)
+        # 再次过滤掉已经下架了商品（price 为 -1 的商品）
+        sql = ("SELECT * FROM gt_item WHERE updated_time < %s \
+            AND handling_time < %s\
+            AND price != -1\
+            ORDER BY updated_time LIMIT %s")
+        val = (today_starter, handling_before, PRICES_HANDLE_PER_PAGE_SIZE)
+        con = self.connect_db()
+        cur = con.cursor()
+        cur.execute(sql, val)
+        rows = cur.fetchall()
+        goods_list = []
+        val_ids = []
+        task_done = True
+        if len(rows) != 0:
+            task_done = False
+            current_timestamp = get_current_timestamp()
+            handling_time_when_then = ''
+            lock_version_when_then = ''
+            # 批量标记为正在处理的状态
+            for row in rows:
+                goods_list.append(row)
+                row_id = row[GOODS_ID_ROW_INDEX]
+                lock_version = row[GOODS_LOCK_VERSION_ROW_INDEX]
+                val_ids.append(row_id)
+                lock_version_when_then = lock_version_when_then + " WHEN " + str(row_id) + " THEN " + str(lock_version+1) + "\n"
+                handling_time_when_then = handling_time_when_then + " WHEN " + str(row_id) + " THEN " + str(current_timestamp) + "\n"
+            sql_when_then = 'lock_version = CASE id \n ' + lock_version_when_then + " END,\n"
+            sql_when_then = sql_when_then + ' handling_time = CASE id \n' + handling_time_when_then + ' END\n'
+            sql = "UPDATE gt_item SET \n %s WHERE id IN %s" % (sql_when_then, tuple(val_ids))
+            cur.execute(sql)
+            con.commit() # 提交事务
+        cur.close()
+        con.close()
+        return (task_done, goods_list)
 
     def connect_db(self):
         '''链接数据库'''

@@ -8,13 +8,9 @@ from bs4 import BeautifulSoup
 import traceback
 
 from operators import dBOperator as db
-from models import GoodsParams
-from utils import safeGetAttr
-from utils import safeGetText
-from config import GlobalConfig as Config
-from config import REQUEST_HEADERS
-from config import GOODS_LINK_ROW_INDEX
-from config import GOODS_ID_ROW_INDEX
+from models import *
+from utils import *
+from config import *
 
 class JDDetails(object):
   '''商品详情信息抓取，之前抓取的是基础信息，现在抓取详情信息
@@ -27,7 +23,7 @@ class JDDetails(object):
     '''爬取商品的详情信息，设计的逻辑同商品的列表页面'''
     job_no = 0
     while True:
-      goods_item = db.next_item_to_handle()
+      goods_item = db.next_goods_to_handle_prameters()
       if goods_item == None:
         break
       job_no = job_no + 1
@@ -43,10 +39,6 @@ class JDDetails(object):
     self.__crawl_from_request(goods_item)
     # 更新到数据库当中
     db.update_goods_parames_and_mark_done(goods_item, goods_params)
-
-  def __crawl_from_request(self, goods_item):
-    '''使用请求的链接来获取商品的详情信息'''
-    pass
 
   def __crawl_from_page(self, goods_item):
     '''从商品的详情信息页面中提取商品的详情信息'''
@@ -95,7 +87,7 @@ class JDDetails(object):
 
 if __name__ == "__main__":
   '''测试入口'''
-  config = Config()
+  config = GlobalConfig()
   config.config_logging()
   dt = JDDetails()
   dt.test()

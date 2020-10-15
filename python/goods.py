@@ -14,8 +14,6 @@ from config import *
 from operators import redisOperator as redis
 from operators import dBOperator as db
 
-# TODO 还要处理商品下架\无货的情况
-# TODO 处理满减信息
 class JDGoods(object):
   '''京东商品信息爬取。这个类主要用来从商品列表中抓取商品的价格等基础信息（不包含商品的具体的参数信息）'''
   def __init__(self):
@@ -50,7 +48,7 @@ class JDGoods(object):
     channel_url = channel[CHANNEL_JD_URL_ROW_INDEX]
     channel_id = channel[CHANNEL_ID_ROW_INDEX]
     channel_name = channel[CHANNEL_NAME_ROW_INDEX]
-    # TODO 要爬取的最大的页数，数据库中也有一个对应的记录 
+    # TODO 要爬取的最大的页数，数据库中也有一个对应的记录，输出完整的任务信息 
     # 抓取分类的信息，也就是第一页的信息
     (succeed, max_page) = self.__crawl_jd_page(channel_url, channel, True)
     page_count = 1 # 已经抓取的页数
@@ -200,28 +198,18 @@ class JDGoods(object):
       json_comments = requests.get("https://club.jd.com/comment/productCommentSummaries.action?referenceIds=" + sku_ids, headers=REQUEST_HEADERS).text
       comments = json.loads(json_comments).get("CommentsCount")
       for comment in comments:
-        sku_id = comment.get("SkuId")                         # sku id *
-        productId = comment.get("ProductId")                  # prodcut id *
-        commentCount = comment.get("CommentCount")            # 评论数量 *
-        averageScore = comment.get("AverageScore")            # 平均得分 *
-        goodRate = comment.get("GoodRate")                    # 好评百分比，诸如 0.98，综合评价 *
-        defaultGoodCount = comment.get("DefaultGoodCount")    # 默认好评
-        goodCount = comment.get("GoodCount")                  # 好评数量
-        generalCount = comment.get("GeneralCount")            # 中评数量
-        poorCount = comment.get("PoorCount")                  # 差评数量
-        videoCount = comment.get("VideoCount")                # 视频晒单数量
-        afterCount = comment.get("AfterCount")                # 追评
-        oneYear = comment.get("OneYear")                      # 一年之后评论
-        showCount = comment.get("ShowCount")                  # show count
+        sku_id = comment.get("SkuId")
         # 获取商品条目
         goods_item = sku_id_map.get(str(sku_id))
         if goods_item != None:
           goods_item.sku_id = sku_id
-          goods_item.product_id = productId
-          goods_item.comment_count = commentCount
-          goods_item.average_score = averageScore
-          goods_item.good_rate = int(goodRate*100)
-          goods_comment = GoodsComment(defaultGoodCount, goodCount, generalCount, poorCount, videoCount, afterCount, oneYear, showCount)
+          goods_item.product_id = comment.get("ProductId")
+          goods_item.comment_count = comment.get("CommentCount")
+          goods_item.average_score = comment.get("AverageScore")
+          goods_item.good_rate = int(comment.get("GoodRate")*100)
+          goods_comment = GoodsComment(comment.get("DefaultGoodCount"), comment.get("GoodCount"), \
+            comment.get("GeneralCount"), comment.get("PoorCount"), comment.get("VideoCount"), \
+              comment.get("AfterCount"), comment.get("OneYear"), comment.get("ShowCount"))
           goods_item.comment = goods_comment
 
   def test(self):

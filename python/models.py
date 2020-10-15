@@ -18,11 +18,11 @@ class GoodsItem(object):
     self.venid= venid             # 商家 id
 
     self.sku_id = ''
-    self.product_id = ''
-    self.comment_count = 0
-    self.average_score = 0
-    self.good_rate = 0    # 数值扩大 100 倍
-    self.comment = None
+    self.product_id = ''          # prodcut id *
+    self.comment_count = 0        # 评论数量 *
+    self.average_score = 0        # 平均得分 *
+    self.good_rate = 0            # 好评百分比，诸如 0.98，综合评价 *
+    self.comment = None 
 
     self.channel_id = 0   # 父级信息：分类 id
     self.channel = ''     # 父级信息：分类 name
@@ -78,17 +78,19 @@ class GoodsComment(object):
   '''商品的评价封装类'''
   def __init__(self, defaultGood, good, general, poor, video, after, oneYear, show):
     super().__init__()
-    self.defaultGoodCount = defaultGood
-    self.goodCount = good
-    self.generalCount = general
-    self.poorCount = poor
-    self.videoCount = video
-    self.afterCount = after
-    self.oneYear = oneYear
-    self.showCount = show
-
+    self.defaultGoodCount = defaultGood # 默认好评
+    self.goodCount = good       # 好评数量
+    self.generalCount = general # 中评数量
+    self.poorCount = poor       # 差评数量
+    self.videoCount = video     # 视频晒单数量
+    self.afterCount = after     # 追评
+    self.oneYear = oneYear      # 一年之后评论
+    self.showCount = show       # show count
+                
   def __str__(self):
-    return "Comment: (%d, %d, %d, %d, %d, %d, %d, %d)" % (self.defaultGoodCount, self.goodCount, self.generalCount, self.poorCount, self.videoCount, self.afterCount, self.oneYear, self.showCount)
+    return "Comment: (%d, %d, %d, %d, %d, %d, %d, %d)" % (self.defaultGoodCount, \
+      self.goodCount, self.generalCount, self.poorCount, self.videoCount, \
+      self.afterCount, self.oneYear, self.showCount)
 
   def to_json(self):
     '''获取对应的 json 字符串'''
@@ -118,7 +120,9 @@ class GoodsParams(object):
     self.packages = {} # 是一个哈希表 {g1: [(), (), ...], g2:[], ...}
 
   def __str__(self):
-      return 'Brand:' + self.brand + '(' + self.brand_url + ')\nStore:' + self.store + '(' + self.store_url + ')\nParameters:' + str(self.parameters) + '\nPackages:'  + str(self.packages)
+      return 'Brand:' + self.brand + '(' + self.brand_url + ')\nStore:' + self.store + \
+        '(' + self.store_url + ')\nParameters:' + str(self.parameters) \
+        + '\nPackages:'  + str(self.packages)
 
 class BrandItem(object):
   '''商品的品牌信息'''
