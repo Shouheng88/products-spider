@@ -9,23 +9,28 @@ JD_MAX_SEARCH_PAGE                = 100    # 爬虫默认最大爬取的页数
 CHANNEL_HANDLE_TIMEOUT_IN_MINUTE  = 2     # 分类处理的超时时间，超时完不成则认为失败
 GOODS_HANDLE_TIMEOUT_IN_MINUTE    = 2     # 产品超时时间，同上
 PRICES_HANDLE_TIMEOUT_IN_MINUTE   = 2
-PRICES_HANDLE_PER_PAGE_SIZE       = 30
+PRICES_HANDLE_PER_PAGE_SIZE       = 10 #TODO change later
 
 # 分类的列索引
 CHANNEL_ID_ROW_INDEX            = 0
 CHANNEL_NAME_ROW_INDEX          = 1
-CHANNEL_TREEPATH_ROW_INDEX      = 3
-CHANNEL_JD_URL_ROW_INDEX        = 4
-CHANNEL_LOCK_VERSION_ROW_INDEX  = 10
+CHANNEL_CAT_ROW_INDEX           = 3
+CHANNEL_TREEPATH_ROW_INDEX      = 4
+CHANNEL_JD_URL_ROW_INDEX        = 5
+CHANNEL_LOCK_VERSION_ROW_INDEX  = 11
 # 商品的列索引
 GOODS_ID_ROW_INDEX              = 0
 GOODS_PRICE_ROW_INDEX           = 5
 GOODS_LINK_ROW_INDEX            = 3
 GOODS_SKU_ID_ROW_INDEX          = 10
+GOODS_VEN_ID_ROW_INDEX          = 12
+GOODS_CHANNEL_ID_ROW_INDEX      = 21
 GOODS_LOCK_VERSION_ROW_INDEX    = 24     # lock version
 # 品牌的列索引
 BRAND_ID_ROW_INDEX              = 0
-BRAND_LINK_ROW_INDEX            = 4 
+BRAND_LINK_ROW_INDEX            = 4
+# 折扣的列索引
+DISCOUNT_BATCH_ID_ROW_INDEX     = 2
 
 # Redis 相关的键信息
 GOODS_PRICE_HISTORY_REDIS_KEY_PATTERN = "GOODS:PRICE:HISTORY:%d"  # 商品历史价格的 Redis 键的格式
@@ -54,3 +59,5 @@ class GlobalConfig(object):
       DATE_FORMAT = "%m/%d/%Y %H:%M:%S %p"
       logging.basicConfig(filename='app.log', filemode='a', level=logging.DEBUG, format=LOG_FORMAT, datefmt=DATE_FORMAT)
       logging.FileHandler(filename='app.log', encoding='utf-8')
+
+config = GlobalConfig()

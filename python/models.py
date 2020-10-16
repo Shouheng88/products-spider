@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import json
-from utils import get_current_timestamp
+from utils import *
 
 class GoodsItem(object):
   '''产品信息包装类'''
@@ -96,18 +96,6 @@ class GoodsComment(object):
     '''获取对应的 json 字符串'''
     return json.dumps(self, default=goodsComment2Dict)
 
-def goodsComment2Dict(comment):
-  return {
-    "defaultGoodCount": comment.defaultGoodCount,
-    "goodCount": comment.goodCount,
-    "generalCount": comment.generalCount,
-    "poorCount": comment.poorCount,
-    "videoCount": comment.videoCount,
-    "afterCount": comment.afterCount,
-    "oneYear": comment.oneYear,
-    "showCount": comment.showCount  
-  }
-
 class GoodsParams(object):
   '''产品的品牌信息，这个是解析结果的包装对象'''
   def __init__(self):
@@ -151,13 +139,41 @@ class BrandItem(object):
 
 class Category(object):
   '''分类信息封装'''
-  def __init__(self):
-    self.name = ''            # 品类名称
-    self.link = ''            # 链接地址
-    self.treepath = ''        # 搜索路径
-    self.parent_id = 0        # 父类品类
-    self.jdurl = ''           # 京东链接
-    self.tburl = ''           # 淘宝链接
-    self.max_page_count = 0   # 最大检索的页数
-    self.display_order = 0    # 展示的顺序
+  def __init__(self, name='', link='', treepath='', parent_id=0, \
+    jdurl='', tburl='', max_page_count=0, display_order=0, cat=''):
+    self.name = name                      # 品类名称
+    self.link = link                      # 链接地址
+    self.treepath = treepath              # 搜索路径
+    self.parent_id = parent_id            # 父类品类
+    self.jdurl = jdurl                    # 京东链接
+    self.tburl = tburl                    # 淘宝链接
+    self.max_page_count = max_page_count  # 最大检索的页数
+    self.display_order = display_order    # 展示的顺序
+    self.cat = cat                        # 品类信息
     self.children = {}
+
+  def __str__(self):
+      return ' ' + self.name + ' ' + self.cat + ' ' + str(self.children)
+
+class Discount(object):
+  '''商品的折扣信息'''
+  def __init__(self, goods_id, batch_id, quota, discount, start_time, end_time):
+    super().__init__()
+    self.goods_id = goods_id
+    self.batch_id = batch_id
+    self.quota = quota            # 满足多少金额的时候可以使用
+    self.discount = discount      # 真实的折扣信息
+    self.start_time = start_time
+    self.end_time = end_time
+
+def goodsComment2Dict(comment):
+  return {
+    "defaultGoodCount": comment.defaultGoodCount,
+    "goodCount": comment.goodCount,
+    "generalCount": comment.generalCount,
+    "poorCount": comment.poorCount,
+    "videoCount": comment.videoCount,
+    "afterCount": comment.afterCount,
+    "oneYear": comment.oneYear,
+    "showCount": comment.showCount  
+  }

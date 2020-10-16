@@ -214,7 +214,7 @@ class JDGoods(object):
 
   def test(self):
     '''测试入口'''
-    self.__crawl_jd_page("https://list.jd.com/list.html?cat=670%2C686%2C689&page=100", (0, ""), True)
+    self.__crawl_jd_page("https://list.jd.com/list.html?cat=670%2C686%2C689&page=100", (328, ""), True)
 
 def tag_has_venid_attr(tag):
   return tag.has_attr('data-venid')

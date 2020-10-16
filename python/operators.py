@@ -207,7 +207,7 @@ class DBOperator(object):
             name, promo, link, image, price, price_type, icons, channel_id,\
             channel, lock_version, updated_time, created_time, handling_time,\
             sku_id, product_id, comment_count, average_score, good_rate, comment_detail, vender_id\
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
             values.append((goods_item.name, goods_item.promo, goods_item.link, 
                 goods_item.image, goods_item.price, goods_item.price_type,
                 goods_item.icons, goods_item.channel_id, goods_item.channel,
@@ -424,19 +424,11 @@ class DBOperator(object):
         try:
             # 先插入到数据库中，获取到记录的 id 之后再更新记录的 treepath 字段
             sql = "INSERT INTO gt_channel (\
-                name, \
-                treepath, \
-                parent_id, \
-                jdurl, \
-                tburl, \
-                max_page_count, \
-                handling_time, \
-                display_order, \
-                lock_version, \
-                updated_time, \
-                created_time) VALUES (%s, %s, %s, %s, %s, %s, 0, %s, 0, 0, unix_timestamp(now()))"
+                name, treepath, parent_id, cat, jdurl, tburl, max_page_count, \
+                handling_time, display_order, lock_version, updated_time, created_time\
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, 0, %s, 0, 0, unix_timestamp(now()))"
             # 将处理时间默和最后更新 (完成时间) 默认设置为 0
-            val = (category.name, category.treepath, category.parent_id, 
+            val = (category.name, category.treepath, category.parent_id, category.cat,
                 category.jdurl, category.tburl, category.max_page_count, category.display_order)
             cur.execute(sql, val)
             row_id = cur.lastrowid
@@ -449,7 +441,7 @@ class DBOperator(object):
             con.commit()
         except Exception as e:
             con.rollback()
-            logging.exception('Insert operation error')
+            logging.exception('Insert Operation Error :\n %s' % traceback.format_exc())
         finally:
             cur.close()
             con.close()
@@ -524,6 +516,108 @@ class DBOperator(object):
         cur.close()
         con.close()
         return (task_done, goods_list)
+
+    def update_goods_list_as_sold_out(self, goods_list):
+        '''将指定的产品列表标记为下架状态'''
+        succeed = False
+        ids = ''
+        for idx in range(0, len(goods_list)):
+            goods_item = goods_list[idx]
+            goods_id = goods_item[GOODS_ID_ROW_INDEX]
+            ids = ids + str(goods_id)
+            if len(goods_list)-1 != idx:
+                ids = ids + ','
+        if len(ids.strip()) == 0:
+            logging.info("Empty Goods Id List.")
+            return True
+        try:
+            sql = "UPDATE gt_item SET price = -1 WHERE id IN ( %s )" % ids
+            logging.debug(sql)
+            con = self.connect_db()
+            cur = con.cursor()
+            cur.execute(sql)
+            succeed = True
+            con.commit()
+        except:
+            logging.error("Failed While Batch Update Sold Out: \n%s" % traceback.format_exc())
+            con.rollback()
+        finally:
+            cur.close()
+            con.close()
+        return succeed
+
+    def get_channels_of_channel_ids(self, channel_id_list):
+        '''通过 channel id 列表获取 channel 数据'''
+        ids = ''
+        for idx in range(0, len(channel_id_list)):
+            channel_id = channel_id_list[idx]
+            ids = ids + str(channel_id)
+            if len(channel_id_list)-1 != idx:
+                ids = ids + ','
+        if len(ids.strip()) == 0:
+            logging.info("Empty Channel Id List!")
+            return
+        try:
+            sql = 'SELECT * FROM gt_channel WHERE id IN ( %s )' % ids
+            logging.debug(sql)
+            con = self.connect_db()
+            cur = con.cursor()
+            cur.execute(sql)
+            rows = cur.fetchall()
+        except BaseException as e:
+            logging.error("Error While Getting Channels: %s" % traceback.format_exc())
+        return rows
+
+    def get_discounts_of_batch_ids(self, batch_list):
+        '''根据传入的折扣的 id 列表查出数据库中存储的折扣记录'''
+        batch_ids = ''
+        for idx in range(0, len(batch_list)):
+            batch_id = batch_list[idx]
+            batch_ids = batch_ids + str(batch_id)
+            if len(batch_list)-1 != idx:
+                batch_ids = batch_ids + ','
+        if len(batch_ids.strip()) != 0:
+            logging.info("Empty Batch Id List!")
+            return
+        try:
+            sql = "SELECT * FROM gt_discount WHERE batch_id IN ( %s )" % batch_ids
+            logging.debug(sql)
+            con = self.connect_db()
+            cur = con.cursor()
+            cur.execute(sql)
+            return cur.fetchall()
+        except BaseException as e:
+            logging.error("Error While Getting Discounts : %s" % traceback.format_exc())
+        return None
+
+    def batch_insert_discounts(self, discounts):
+        '''批量向数据库中插入折扣信息'''
+        succeed = True
+        if len(discounts) == 0:
+            logging.info("Empty Discounts To Insert!!")
+            return succeed
+        try:
+            values = []
+            con = self.connect_db()
+            cur = con.cursor()
+            for discount in discounts:
+                sql = "INSERT INTO gt_discount (\
+                goods_id, batch_id, quota, discount, start_time, end_time,\
+                lock_version, updated_time, created_time\
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
+                values.append((discount.goods_id, discount.batch_id, discount.quota, discount.discount, 
+                    discount.start_time, discount.end_time, 0, int(get_current_timestamp()), int(get_current_timestamp())))
+            val = tuple(values)
+            cur.executemany(sql, val)
+            con.commit()
+        except BaseException as e:
+            succeed = False
+            logging.error("Failed While Batch Insert Discounts: \n%s" % traceback.format_exc())
+            con.rollback()
+        finally:
+            cur.close()
+            con.close()
+        return succeed
 
     def connect_db(self):
         '''链接数据库'''

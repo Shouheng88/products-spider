@@ -8,11 +8,8 @@ from bs4 import BeautifulSoup
 from models import Category
 
 from operators import ExcelOperator as ExcelOperator
-from operators import DBOperator as db
-
-from config import JD_CATEGORY_STORE
-from config import JD_HANDLED_CATEGORY_STORE
-from config import TB_CATEGORY_STORE
+from operators import dBOperator as db
+from config import *
 
 class JDCategory(object):
     '''京东分类信息管理类'''
@@ -64,28 +61,15 @@ class JDCategory(object):
             max_page_count = cols[5][idx]
             channel = dist.get(c_name) # 一级品类
             if channel == None:
-                channel = Category()
-                channel.name = cols[0][idx]
-                channel.display_order = idx
+                channel = Category(cols[0][idx], display_order=idx)
                 dist[c_name] = channel
             s_channel = channel.children.get(sc_name) # 二级品类
             if s_channel == None:
-                s_channel = Category()
-                s_channel.name = sc_name
-                s_channel.link = cols[2][idx]
-                s_channel.display_order = idx
+                s_channel = Category(sc_name, cols[2][idx], display_order=idx)
                 channel.children[sc_name] = s_channel
-            t_channel = Category() # 三级品类
-            t_channel.name = tc_name
-            t_channel.link = cols[4][idx]
-            t_channel.display_order = idx
-            t_channel.max_page_count = max_page_count
+            link =  cols[4][idx]
+            t_channel = Category(tc_name, link, display_order=idx, max_page_count=max_page_count, cat=link[(link.rfind('=')+1):]) # 三级品类
             s_channel.children[tc_name] = t_channel
-        # 输出日志
-        for c_name, c_channel in dist.items(): # 一级品类遍历
-            for s_name, s_channel in c_channel.children.items(): # 二级品类遍历
-                for t_name, t_channel in s_channel.children.items(): # 三级品类遍历
-                    logging.debug("%s - %s - %s", c_name, s_name, t_name)
         # 写入 DB
         for c_name, c_channel in dist.items(): # 一级品类遍历
             p_id = db.write_channel(c_channel)
@@ -150,3 +134,8 @@ class TBCategory(object):
                     self.dist["三级品类链接"].append(collection_item_link)
         eo = ExcelOperator()
         eo.write_excel("淘宝", self.dist, TB_CATEGORY_STORE)
+
+if __name__ == "__main__":
+    config.config_logging()
+    jd = JDCategory()
+    jd.write_results()

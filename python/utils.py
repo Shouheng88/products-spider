@@ -11,6 +11,13 @@ def get_timestamp_of_today_start():
   str_today_start = str_today + " 0:0:0"
   return int(time.mktime(time.strptime(str_today_start, "%Y-%m-%d %H:%M:%S")))
 
+def get_starter_timestamp_of_day(dat_str):
+  '''从时间字符串中获取指定日期的开始时间戳'''
+  if dat_str.find(' ') != -1:
+    return int(time.mktime(time.strptime(dat_str, "%Y-%m-%d %H:%M")))
+  else:
+    return int(time.mktime(time.strptime(dat_str + " 0:0:0", "%Y-%m-%d %H:%M:%S")))
+
 def get_current_timestamp():
   """获取当前的时间戳"""
   return int(time.time())
