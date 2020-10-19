@@ -36,7 +36,6 @@ class JDDetails(object):
   def __crawl_goods_item(self, goods_item):
     '''爬取商品的信息'''
     goods_params = self.__crawl_from_page(goods_item)
-    self.__crawl_from_request(goods_item)
     # 更新到数据库当中
     db.update_goods_parames_and_mark_done(goods_item, goods_params)
 
@@ -83,11 +82,10 @@ class JDDetails(object):
 
   def test(self):
     '''测试入口'''
-    self.__crawl_goods_item((66, 0, 0, 'https://item.jd.com/55690316532.html', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0))
+    self.__crawl_goods_item((106, 0, 0, 'https://item.jd.com/100000695409.html', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6))
 
 if __name__ == "__main__":
   '''测试入口'''
-  config = GlobalConfig()
   config.config_logging()
   dt = JDDetails()
   dt.test()

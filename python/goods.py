@@ -7,6 +7,11 @@ import re
 from bs4 import BeautifulSoup
 import traceback
 import json
+from selenium.webdriver.common.by import By
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 from utils import *
 from models import *
@@ -216,12 +221,60 @@ class JDGoods(object):
     '''测试入口'''
     self.__crawl_jd_page("https://list.jd.com/list.html?cat=670%2C686%2C689&page=100", (328, ""), True)
 
+class TBGoods(object):
+  def __init__(self):
+    super().__init__()
+
+  def crawl(self):
+    # 淘宝的都是以搜索的形式的
+    html = requests.get("https://s.taobao.com/search?q=%E6%89%8B%E6%9C%BA", headers ={
+      "Accept" : "application/jason, text/javascript, */*; q = 0.01",
+      "X-Request-With" : "XMLHttpRequest",
+      "User-Agent":"Mozilla/5.0 (Windows NT 10.0; ...) Gecko/20100101 Firefox/60.0",
+      "Content-Type" : "application/x-www-form-urlencode:chartset=UTF-8",
+      'cookie': 't=fc09ad46bdaacf77d576575754ce164a; enc=25WIP7P0FSKmvPciLcPfsEuT1JIuDE3HMHToPzzfx8%2B%2FVubIg77xDFrEFkSiaQ9myqlsh4JJI8Y2cLTvAEBo%2FA%3D%3D; hng=CN%7Czh-CN%7CCNY%7C156; thw=cn; _fbp=fb.1.1600140188248.332468417; tracknick=; cna=rTvJFyaJOV0CAWj752MYVDKZ; mt=ci=-1_0; xlly_s=1; _samesite_flag_=true; cookie2=1e454d5c02d1bd9981b3288ff41810ca; _tb_token_=efe37eeeeeeee; v=0; _m_h5_tk=038bceed31696698007415e8cb61a72c_1602844578531; _m_h5_tk_enc=75099bdc3351f64c971ed1885d8ec377; alitrackid=www.taobao.com; lastalitrackid=www.taobao.com; JSESSIONID=0F03B40EEC8F060650BEA25C784E0541; tfstk=cVdPBR0-Kbhy0QfIB_1UFMvZxdfRZQdHaSSPEpRoXfb7naXliEZdo0URuiStiTf..; l=eBrntNgeOYR5fegSBOfZourza779SIRAguPzaNbMiOCPOV1p5qENWZ56n2L9CnGVh6q9R3-wPvUJBeYBqIv4n5U62j-laskmn; isg=BMbGrG7l5VhWarFrP-uXSX05F7xIJwrhS3TFJrDvt-nEs2bNGLM18ZxBj-9_GwL5'
+    })
+    html.encoding = 'gbk'
+    html = requests.get('https://detail.tmall.com/item.htm?id=608801385005', headers = {
+      "Accept" : "application/jason, text/javascript, */*; q = 0.01",
+      "X-Request-With" : "XMLHttpRequest",
+      "User-Agent":"Mozilla/5.0 (Windows NT 10.0; ...) Gecko/20100101 Firefox/60.0",
+      "Content-Type" : "application/x-www-form-urlencode:chartset=UTF-8",
+      'cookie': 't=fc09ad46bdaacf77d576575754ce164a; enc=25WIP7P0FSKmvPciLcPfsEuT1JIuDE3HMHToPzzfx8%2B%2FVubIg77xDFrEFkSiaQ9myqlsh4JJI8Y2cLTvAEBo%2FA%3D%3D; hng=CN%7Czh-CN%7CCNY%7C156; thw=cn; _fbp=fb.1.1600140188248.332468417; tracknick=; cna=rTvJFyaJOV0CAWj752MYVDKZ; mt=ci=-1_0; xlly_s=1; _samesite_flag_=true; cookie2=1e454d5c02d1bd9981b3288ff41810ca; _tb_token_=efe37eeeeeeee; v=0; _m_h5_tk=038bceed31696698007415e8cb61a72c_1602844578531; _m_h5_tk_enc=75099bdc3351f64c971ed1885d8ec377; alitrackid=www.taobao.com; lastalitrackid=www.taobao.com; JSESSIONID=0F03B40EEC8F060650BEA25C784E0541; tfstk=cVdPBR0-Kbhy0QfIB_1UFMvZxdfRZQdHaSSPEpRoXfb7naXliEZdo0URuiStiTf..; l=eBrntNgeOYR5fegSBOfZourza779SIRAguPzaNbMiOCPOV1p5qENWZ56n2L9CnGVh6q9R3-wPvUJBeYBqIv4n5U62j-laskmn; isg=BMbGrG7l5VhWarFrP-uXSX05F7xIJwrhS3TFJrDvt-nEs2bNGLM18ZxBj-9_GwL5'
+    })
+    # logging.debug(html.text)
+
+  def login(self):
+    '''淘宝登录'''
+    
+    pass
+
+  def test(self):
+    cookies = [{'name': '_samesite_flag_', 'value': 'true', 'domain': '.taobao.com', 'path': '/', 'expires': -1, 'size': 19, 'httpOnly': True, 'secure': True, 'session': True}, {'name': 'cookie2', 'value': '198cc95167581b3358dfe883041baba3', 'domain': '.taobao.com', 'path': '/', 'expires': -1, 'size': 39, 'httpOnly': True, 'secure': False, 'session': True}, {'name': 'cna', 'value': '1AQUGJsekWsCATpkbQ3DyinP', 'domain': '.taobao.com', 'path': '/', 'expires': 2233801940, 'size': 27, 'httpOnly': False, 'secure': False, 'session': False}, {'name': 'tracknick', 'value': 'shouheng0808', 'domain': '.taobao.com', 'path': '/', 'expires': 1634623692.664334, 'size': 21, 'httpOnly': False, 'secure': False, 'session': False}, {'name': 't', 'value': '62787c4b9687b3c6133ebb6bebfee91e', 'domain': '.taobao.com', 'path': '/', 'expires': 1610863692.664177, 'size': 33, 'httpOnly': False, 'secure': False, 'session': False}, {'name': 'l', 'value': 'eBICktVPOmJOVs92BOfanurza77OSIRYYuPzaNbMiOCP_9CB5MBkXZ5CDIY6C3GVh6mvR3-1IUIkBeYBq7Vonxv9w8VMULkmn', 'domain': '.taobao.com', 'path': '/', 'expires': 1618639694, 
+            'size': 98, 'httpOnly': False, 'secure': False, 'session': False}, {'name': '_tb_token_', 'value': 'e5e37be395783', 'domain': '.taobao.com', 'path': '/', 'expires': -1, 'size': 23, 'httpOnly': False, 'secure': False, 'session': True}, {'name': 'xlly_s', 'value': '1', 'domain': '.taobao.com', 'path': '/', 'expires': 1603168341, 'size': 7, 'httpOnly': False, 'secure': True, 'session': False}, {'name': 'lgc', 'value': 'shouheng0808', 'domain': '.taobao.com', 'path': '/', 'expires': 1605679692.664155, 'size': 15, 'httpOnly': False, 'secure': 
+            False, 'session': False}, {'name': 'mt', 'value': 'ci=1_1', 'domain': '.taobao.com', 'path': '/', 'expires': 1603692494.035305, 'size': 8, 'httpOnly': False, 'secure': False, 'session': False}, {'name': 'dnk', 'value': 'shouheng0808', 'domain': '.taobao.com', 'path': '/', 'expires': -1, 'size': 15, 'httpOnly': False, 'secure': False, 'session': True}, {'name': '_l_g_', 'value': 'Ug%3D%3D', 'domain': '.taobao.com', 'path': '/', 'expires': -1, 'size': 13, 'httpOnly': False, 'secure': False, 'session': True}, {'name': 'sgcookie', 'value': 'E100diulm2bKRsdOqf2B2z87HguXYjQrpP%2B1vQZjAgwzkWR3AB1fi70%2FuIAQslssVd1KmyNHH4u0tg2IKXJRIvcVgg%3D%3D', 'domain': '.taobao.com', 'path': '/', 'expires': 1634623692.664214, 'size': 108, 'httpOnly': False, 'secure': False, 'session': False}, {'name': 'uc1', 'value': 'pas=0&cookie15=VT5L2FSpMGV7TQ%3D%3D&cookie16=VT5L2FSpNgq6fDudInPRgavC%2BQ%3D%3D&cookie14=Uoe0bkmAUrAjsg%3D%3D&existShop=false&cookie21=Vq8l%2BKCLjhS4UhJVbhgU', 'domain': '.taobao.com', 'path': '/', 'expires': -1, 'size': 160, 'httpOnly': False, 'secure': False, 'session': True}, 
+            {'name': 'unb', 'value': '1680333832', 'domain': '.taobao.com', 'path': '/', 'expires': -1, 'size': 13, 'httpOnly': True, 'secure': False, 'session': True}, {'name': 'uc3', 'value': 'lg2=UtASsssmOIJ0bQ%3D%3D&vt3=F8dCufHHfcyyC36Ovtg%3D&id2=Uoe8iqifvGVHWw%3D%3D&nk2=EFY783GxR4G%2FiWeX', 'domain': '.taobao.com', 'path': '/', 'expires': 1605679692.664114, 'size': 102, 'httpOnly': True, 'secure': False, 'session': False}, {'name': 'csg', 'value': 'ae082d45', 'domain': '.taobao.com', 'path': '/', 'expires': -1, 'size': 11, 'httpOnly': False, 'secure': False, 'session': True}, {'name': 'uc4', 'value': 'nk4=0%40Eo9FomkH1pRlXqJlEKbr%2F71QgmRda0Q%3D&id4=0%40UO%2B6bNEDF%2FPQTFVtgrZD26zSE34T', 'domain': '.taobao.com', 'path': '/', 'expires': 1605679692.664298, 'size': 88, 'httpOnly': True, 'secure': False, 'session': 
+            False}, {'name': 'cookie17', 'value': 'Uoe8iqifvGVHWw%3D%3D', 'domain': '.taobao.com', 'path': '/', 'expires': -1, 'size': 28, 'httpOnly': True, 'secure': False, 'session': True}, {'name': 'skt', 'value': 'ede997ffd99e0c7c', 'domain': '.taobao.com', 'path': '/', 'expires': -1, 'size': 19, 'httpOnly': True, 'secure': False, 'session': True}, {'name': 'existShop', 'value': 'MTYwMzA4NzY5Mg%3D%3D', 'domain': '.taobao.com', 'path': '/', 'expires': -1, 'size': 29, 'httpOnly': False, 'secure': False, 'session': True}, {'name': '_cc_', 'value': 'UIHiLt3xSw%3D%3D', 'domain': '.taobao.com', 'path': '/', 'expires': 1634623692.664376, 'size': 20, 'httpOnly': False, 'secure': False, 'session': False}, {'name': 'sg', 'value': '82e', 'domain': '.taobao.com', 'path': '/', 'expires': -1, 'size': 5, 'httpOnly': False, 'secure': False, 'session': True}, {'name': '_nk_', 'value': 'shouheng0808', 'domain': '.taobao.com', 'path': '/', 'expires': -1, 'size': 16, 'httpOnly': False, 'secure': False, 'session': True}, {'name': 'cookie1', 'value': 'AVZ%2FtpR0qlrLZMdfvi6yi4Fv71L%2FXcDv84O98Z6uBCE%3D', 'domain': '.taobao.com', 'path': '/', 'expires': -1, 'size': 57, 'httpOnly': True, 'secure': False, 'session': True}, {'name': 'thw', 'value': 'cn', 'domain': '.taobao.com', 'path': '/', 'expires': 1634623694.035356, 'size': 5, 'httpOnly': False, 'secure': False, 'session': False}, {'name': 'isg', 'value': 'BOrqQR4dQSi9Ac3Essdn-T8GO1CMW2619K0BzXSj9T3Jp4thSugKxBNFNdO7TOZN', 'domain': '.taobao.com', 'path': '/', 'expires': 1618639694, 'size': 67, 'httpOnly': False, 'secure': False, 'session': False}, {'name': 'tfstk', 'value': 'cQ8OB9VyuvDgs8Cpahn3lpOastDlwzoOp51LkbODk--WM91mRUYPNco1Lxzt9', 'domain': '.taobao.com', 'path': '/', 'expires': 1618639694, 'size': 66, 'httpOnly': False, 'secure': False, 'session': False}]
+    # self.crawl()
+    try:
+      chrome_opt = Options()      # 创建参数设置对象.
+      chrome_opt.add_argument('--headless')   # 无界面化.
+      chrome_opt.add_argument('--disable-gpu')    # 配合上面的无界面化.
+      chrome_opt.add_argument('--window-size=1366,768')   # 设置窗口大小, 窗口大小会有影响.
+      driver = webdriver.Chrome(chrome_options=chrome_opt)     # 创建Chrome对象.
+      wait = WebDriverWait(driver, 10)
+      driver.get('https://s.taobao.com/search?q=华为手机')     # get方式访问百度.
+      wait.until(EC.presence_of_element_located((By.ID, 'mainsrp-itemlist')))
+      print(driver.page_source)
+      driver.quit()
+    except BaseException as e:
+      logging.error("Error Diver:\n %s" % traceback.format_exc())
+
 def tag_has_venid_attr(tag):
   return tag.has_attr('data-venid')
 
 if __name__ == "__main__":
   '''调试入口'''
-  config = GlobalConfig()
   config.config_logging()
-  gd = JDGoods()
+  gd = TBGoods()
   gd.test()

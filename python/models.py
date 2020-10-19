@@ -27,8 +27,13 @@ class GoodsItem(object):
     self.channel_id = 0   # 父级信息：分类 id
     self.channel = ''     # 父级信息：分类 name
 
+    self.source = 0       # 来源，0 京东，1 淘宝，2 天猫
+
   def __str__(self):
-    return "Goods: (%s, %s, %s, %s, %s, %s)" % (self.name, self.price, self.icons, self.sku_id, self.product_id, self.comment)
+    return "Goods: (%s, %s, %s, %s, %s, %s, %s, %s,\
+      %s, %s, %s, %s, %s, %s,\
+      %s, %s, %s)" % (self.name, self.promo, self.link, self.image, self.price, self.price_type, self.icons, self.venid,\
+        self.sku_id, self.product_id, self.comment_count, self.average_score, self.good_rate, self.comment, self.channel_id, self.channel, self.source)
 
   def get_comment_detail(self):
     '''获取对应的评论的 json 字符串'''

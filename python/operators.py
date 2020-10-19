@@ -282,6 +282,7 @@ class DBOperator(object):
         sql_part = sql_part + ' lock_version = ' + str((lock_version + 1)) + ', '
         sql_part = sql_part + ' updated_time = ' + str(get_current_timestamp())
         sql = "UPDATE gt_item SET %s WHERE id = %s and lock_version = %s" % (sql_part, goods_id, lock_version)
+        logging.debug(sql)
         succeed = True
         try:
             con = self.connect_db()
