@@ -51,6 +51,8 @@ class JDPrices(object):
       job_no = job_no + 1
       logging.info('>>>> Crawling Discount: job[%d] <<<<' % (job_no))
       self.__crawl_goods_discount(goods_list)
+      # 休眠一定时间，其实爬数据的时候是一批分别 http 请求的，所以大休一下拉
+      time.sleep(random.random() * CRAWL_SLEEP_TIME_INTERVAL)
     logging.info(">>>> Crawling Discount Job Finished: [%d] times [%d] items done <<<<" % (job_no, item_count))
 
   def __crawl_prices(self, goods_list):
