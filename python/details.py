@@ -25,15 +25,15 @@ class JDDetails(object):
     '''爬取商品的详情信息，设计的逻辑同商品的列表页面'''
     job_no = 0 # 编号
     while True:
-      goods_item = db.next_goods_to_handle_prameters()
+      goods_item = db.next_goods_to_handle_prameters(SOURCE_JINGDONG)
       if goods_item == None:
         break
       job_no = job_no + 1
       goods_id = goods_item[GOODS_ID_ROW_INDEX]
-      logging.info(">>>> Crawling Goods Details: job[%d] goods[%d]. <<<<" % (job_no, goods_id))
+      logging.info(">>>> Crawling Goods Details: job[%d] goods[%d] <<<<" % (job_no, goods_id))
       self.__crawl_goods_item(goods_item) # 爬取某个商品的条目
       time.sleep(random.random() * CRAWL_SLEEP_TIME_MIDLLE) # 休眠一定时间
-    logging.info(">>>> Crawling Goods Details Job Finished: [%d] channels done. <<<" % job_no)
+    logging.info(">>>> Crawling Goods Details Job Finished: [%d] channels done <<<" % job_no)
 
   def __crawl_goods_item(self, goods_item):
     '''爬取商品的信息'''

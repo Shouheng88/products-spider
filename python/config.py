@@ -11,7 +11,8 @@ JD_MAX_SEARCH_PAGE                = 100    # 爬虫默认最大爬取的页数
 CHANNEL_HANDLE_TIMEOUT_IN_MINUTE  = 2     # 分类处理的超时时间，超时完不成则认为失败
 GOODS_HANDLE_TIMEOUT_IN_MINUTE    = 2     # 产品超时时间，同上
 PRICES_HANDLE_TIMEOUT_IN_MINUTE   = 2
-PRICES_HANDLE_PER_PAGE_SIZE       = 10 #TODO change later
+PRICES_HANDLE_PER_PAGE_SIZE       = 30
+DISCOUNT_HANDLE_PER_PAGE_SIZE     = 10
 
 # 分类的列索引
 CHANNEL_ID_ROW_INDEX            = 0

@@ -478,16 +478,20 @@ class DBOperator(object):
             con.close()
         return row_id
 
-    def next_goods_to_handle_prameters(self):
-        '''从商品列表中取出下一个需要解析的商品，设计的逻辑参考品类爬取相关的逻辑
-        该方法现在只应用于查询商品的参数信息，现在的逻辑是每个产品只查询一次参数信息'''
+    def next_goods_to_handle_prameters(self, source: int):
+        '''
+        从商品列表中取出下一个需要解析的商品，设计的逻辑参考品类爬取相关的逻辑
+        该方法现在只应用于查询商品的参数信息，现在的逻辑是每个产品只查询一次参数信息
+        按照下面的逻辑会依次按照 parameters 为 null 进行判断，所以不会出现重复现象
+        '''
         handling_before = get_current_timestamp() - get_seconds_of_minutes(GOODS_HANDLE_TIMEOUT_IN_MINUTE)
         # 查询的时候增加 parameters 条件，也即只有当参数为空的时候才爬取，每个产品只爬取一次
         sql = ("SELECT * FROM gt_item WHERE \
             handling_time < %s and \
             parameters is null and \
-            price != -1 \
-            ORDER BY updated_time, id LIMIt 5") % (handling_before) # 每次取出来 5 个数据吧
+            price != -1 and \
+            source = %s \
+            ORDER BY updated_time, id LIMIt 5") % (handling_before, source) # 每次取出来 5 个数据吧
         con = self.connect_db()
         cur = con.cursor()
         goods_item = None
@@ -515,46 +519,75 @@ class DBOperator(object):
             con.close()
         return goods_item
 
-    def next_goods_page_to_handle_prices(self):
-        '''从商品列表中按照页的方式来解析商品的价格信息
-        返回信息包含两个字段，task_done 表示任务是否已完成，其二返回的是数据列表
-        如果 task_done=True 则表示没有需要处理的任务了；否则表示有任务需要处理，
-        而如果 goods_list 是空的话，只能表示更新数据库的时候失败了，此时应该进行重试'''
-        today_starter = get_timestamp_of_today_start()*2 # TODO 移除测试
-        handling_before = get_current_timestamp() - get_seconds_of_minutes(PRICES_HANDLE_TIMEOUT_IN_MINUTE)
-        # 再次过滤掉已经下架了商品（price 为 -1 的商品）
-        sql = ("SELECT * FROM gt_item WHERE updated_time < %s \
-            AND handling_time < %s\
-            AND price != -1\
-            ORDER BY updated_time LIMIT %s")
-        val = (today_starter, handling_before, PRICES_HANDLE_PER_PAGE_SIZE)
+    def next_goods_page(self, source: int, page_size: int, start_id: int):
+        """
+        从商品列表中读取一页数据来查询商品的价格信息，这里查询到了数据之后就直接返回了，
+        处理数据的时候也不会进行加锁和标记.
+        """
+        sql = ("SELECT * FROM gt_item WHERE \
+            price != -1 \
+            AND source = %s \
+            AND id > %s \
+            ORDER BY id LIMIT %s")
+        val = (source, start_id, page_size)
         con = self.connect_db()
         cur = con.cursor()
         cur.execute(sql, val)
         rows = cur.fetchall()
+        return rows
+
+    def next_goods_page_to_handle(self, source: int, page_size: int, start_id: int):
+        '''
+        从商品列表中按照页的方式来解析商品的价格信息
+        返回信息包含两个字段，task_done 表示任务是否已完成，其二返回的是数据列表
+        如果 task_done=True 则表示没有需要处理的任务了；否则表示有任务需要处理，
+        而如果 goods_list 是空的话，只能表示更新数据库的时候失败了，此时应该进行重试。
+        这里使用起止 id 的方式进行搜索，没有采用 channel 的集群查询方式，
+        如果需要设计成集群的，可以采用哈希算法，对 id 取余将指定的任务分配到各个机子上面。
+        '''
         goods_list = []
         val_ids = []
+        handling_before = get_current_timestamp() - get_seconds_of_minutes(PRICES_HANDLE_TIMEOUT_IN_MINUTE)
+        # 再次过滤掉已经下架了商品（price 为 -1 的商品）
+        sql = ("SELECT * FROM gt_item WHERE \
+            handling_time < %s \
+            AND price != -1 \
+            AND source = %s \
+            AND id > %s \
+            ORDER BY id LIMIT %s")
+        val = (handling_before, source, start_id, page_size)
+        con = self.connect_db()
+        cur = con.cursor()
         task_done = True
-        if len(rows) != 0:
-            task_done = False
-            current_timestamp = get_current_timestamp()
-            handling_time_when_then = ''
-            lock_version_when_then = ''
-            # 批量标记为正在处理的状态
-            for row in rows:
-                goods_list.append(row)
-                row_id = row[GOODS_ID_ROW_INDEX]
-                lock_version = row[GOODS_LOCK_VERSION_ROW_INDEX]
-                val_ids.append(row_id)
-                lock_version_when_then = lock_version_when_then + " WHEN " + str(row_id) + " THEN " + str(lock_version+1) + "\n"
-                handling_time_when_then = handling_time_when_then + " WHEN " + str(row_id) + " THEN " + str(current_timestamp) + "\n"
-            sql_when_then = 'lock_version = CASE id \n ' + lock_version_when_then + " END,\n"
-            sql_when_then = sql_when_then + ' handling_time = CASE id \n' + handling_time_when_then + ' END\n'
-            sql = "UPDATE gt_item SET \n %s WHERE id IN %s" % (sql_when_then, tuple(val_ids))
-            cur.execute(sql)
-            con.commit() # 提交事务
-        cur.close()
-        con.close()
+        try:
+            cur.execute(sql, val)
+            rows = cur.fetchall()
+            if len(rows) != 0:
+                task_done = False
+                handling_time_when_then = ''
+                lock_version_when_then = ''
+                # 批量标记为正在处理的状态
+                for row in rows:
+                    goods_list.append(row)
+                    row_id = row[GOODS_ID_ROW_INDEX]
+                    lock_version = row[GOODS_LOCK_VERSION_ROW_INDEX]
+                    val_ids.append(row_id)
+                    lock_version_when_then = lock_version_when_then + " WHEN " + str(row_id) + " THEN " + str(lock_version+1) + "\n"
+                    handling_time_when_then = handling_time_when_then + " WHEN " + str(row_id) + " THEN " + str(get_current_timestamp()) + "\n"
+                sql_when_then = 'lock_version = CASE id \n ' + lock_version_when_then + " END,\n"
+                sql_when_then = sql_when_then + ' handling_time = CASE id \n' + handling_time_when_then + ' END\n'
+                sql = "UPDATE gt_item SET \n %s WHERE id IN %s" % (sql_when_then, tuple(val_ids))
+                ret = cur.execute(sql)
+                if ret == len(rows):
+                    con.commit() # 提交事务
+                else:
+                    logging.error('Failed to get page goods to crawl discounts.')
+        except BaseException as e:
+            con.rollback()
+            logging.error('Error while getting page goods to crawl discount:%s\n' % traceback.format_exc())
+        finally:
+            cur.close()
+            con.close()
         return (task_done, goods_list)
 
     def update_goods_list_as_sold_out(self, goods_list):
@@ -571,7 +604,7 @@ class DBOperator(object):
             logging.info("Empty Goods Id List.")
             return True
         try:
-            sql = "UPDATE gt_item SET price = -1 WHERE id IN ( %s )" % ids
+            sql = "UPDATE gt_item SET price = -1, updated_time = %s WHERE id IN ( %s )" % (str(get_current_timestamp()), ids)
             logging.debug(sql)
             con = self.connect_db()
             cur = con.cursor()
@@ -579,7 +612,7 @@ class DBOperator(object):
             succeed = True
             con.commit()
         except:
-            logging.error("Failed While Batch Update Sold Out: \n%s" % traceback.format_exc())
+            logging.error("Failed While Batch Update Sold Out:\n%s" % traceback.format_exc())
             con.rollback()
         finally:
             cur.close()
@@ -616,12 +649,11 @@ class DBOperator(object):
             batch_ids = batch_ids + str(batch_id)
             if len(batch_list)-1 != idx:
                 batch_ids = batch_ids + ','
-        if len(batch_ids.strip()) != 0:
+        if len(batch_ids.strip()) == 0:
             logging.info("Empty Batch Id List!")
             return
         try:
             sql = "SELECT * FROM gt_discount WHERE batch_id IN ( %s )" % batch_ids
-            logging.debug(sql)
             con = self.connect_db()
             cur = con.cursor()
             cur.execute(sql)

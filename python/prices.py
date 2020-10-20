@@ -4,6 +4,8 @@
 import requests
 import logging
 import re
+import time
+import random
 
 from operators import dBOperator as db
 from models import *
@@ -18,43 +20,46 @@ class JDPrices(object):
   def crawl(self):
     '''获取商品的价格信息'''
     job_no = 0
+    start_id = 0
+    item_count = 0
     while True:
-      goods_list = db
-      job_no = job_no + 1
-      (task_done, goods_list) = db.next_goods_page_to_handle_prices()
-      if task_done: # 表示任务完成了
-        break
+      goods_list = db.next_goods_page(SOURCE_JINGDONG, PRICES_HANDLE_PER_PAGE_SIZE, start_id)
       if len(goods_list) == 0: # 表示可能是数据加锁的时候失败了
-        continue
+        break
+      item_count = item_count + len(goods_list)
+      start_id = goods_list[len(goods_list)-1][GOODS_ID_ROW_INDEX]
+      job_no = job_no + 1
+      logging.info('>>>> Crawling Prices: job[%d], starter[%d] <<<<' % (job_no, start_id))
       self.__crawl_prices(goods_list)
-    # 任务完成！！！*★,°*:.☆(￣▽￣)/$:*.°★* 。4
-    logging.info("Goods Prices Scrawl Job Finished!!!")
+      # 休眠一定时间
+      time.sleep(random.random() * CRAWL_SLEEP_TIME_INTERVAL)
+    logging.info(">>>> Crawling Prices Job Finished: [%d] times [%d] items done <<<<" % (job_no, item_count))
 
   def crawl_discount(self):
     '''查询产品的折扣信息'''
     job_no = 0
+    start_id = 0
+    item_count = 0
     while True:
-      goods_list = db
-      job_no = job_no + 1
-      (task_done, goods_list) = db.next_goods_page_to_handle_prices()
+      (task_done, goods_list) = db.next_goods_page_to_handle(SOURCE_JINGDONG, DISCOUNT_HANDLE_PER_PAGE_SIZE, start_id) # 拉取一页数据
       if task_done: # 表示任务完成了
         break
       if len(goods_list) == 0: # 表示可能是数据加锁的时候失败了
         continue
+      item_count = item_count + len(goods_list)
+      start_id = goods_list[len(goods_list)-1][GOODS_ID_ROW_INDEX]
+      job_no = job_no + 1
+      logging.info('>>>> Crawling Discount: job[%d] <<<<' % (job_no))
       self.__crawl_goods_discount(goods_list)
-    # 任务完成！！！*★,°*:.☆(￣▽￣)/$:*.°★* 。4
-    logging.info("Goods Discount Scrawl Job Finished!!!")
+    logging.info(">>>> Crawling Discount Job Finished: [%d] times [%d] items done <<<<" % (job_no, item_count))
 
   def __crawl_prices(self, goods_list):
-    '''批量爬取商品的价格信息'''
+    '''批量爬取商品的价格信息，主要用来查找商品的下架状态，如果下架了，就将其标记为下架'''
     self.__crawl_basic_prices(goods_list)
     list_2_update = []
-    list_2_discount = []
     for goods_item in goods_list:
       if goods_item[GOODS_PRICE_ROW_INDEX] == -1:
         list_2_update.append(goods_item)
-      else:
-        list_2_discount.append(goods_item)
     if len(list_2_update) != 0:
       # 已经下架的产品，更新到数据库中
       db.update_goods_list_as_sold_out(list_2_update)
@@ -70,7 +75,6 @@ class JDPrices(object):
         ids = ids + ','
     prices_json = requests.get("https://p.3.cn/prices/mgets?skuIds=" + ids, headers=REQUEST_HEADERS).text
     prices = json.loads(prices_json)
-    logging.debug(prices)
     for idx in range(0, len(prices)):
       price = prices[idx]
       price_value = price.get('p')
@@ -102,7 +106,7 @@ class JDPrices(object):
       cat = cat_map.get(channel_id)
       if cat != None:
         discount_json = requests.get("https://cd.jd.com/promotion/v2?skuId=%s&area=12_904_3373_0&venderId=%s&cat=%s" % (sku_id, ven_id, cat), headers=REQUEST_HEADERS).text
-        logging.debug(discount_json)
+        # logging.debug(discount_json)
         discount_obj = json.loads(discount_json)
         coupons = discount_obj.get('skuCoupon')
         for coupon in coupons:
@@ -121,8 +125,8 @@ class JDPrices(object):
       rows = db.get_discounts_of_batch_ids(batch_id_list)
       if rows != None:
         for row in rows:
-          batch_id = row[DISCOUNT_BATCH_ID_ROW_INDEX]
-          if batch_id_list.index(batch_id) != -1:
+          batch_id = int(row[DISCOUNT_BATCH_ID_ROW_INDEX])
+          if batch_id in discount_map:
             discount_map.pop(batch_id)
       discounts = []
       for batch_id, discount in discount_map.items():

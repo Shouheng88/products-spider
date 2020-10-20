@@ -40,10 +40,10 @@ class JDGoods(object):
         break
       job_no = job_no + 1 # 对任务进行解析
       channel_name = channel[CHANNEL_NAME_ROW_INDEX]
-      logging.info(">>>> Crawling Channel: job[%d], channel[%s]. <<<<" % (job_no, channel_name))
+      logging.info(">>>> Crawling Channel: job[%d], channel[%s] <<<<" % (job_no, channel_name))
       self.__crawl_jd_channel(channel) # 爬取某个品类的数据
       db.mark_channel_as_done(channel) # 将指定的品类标记为完成
-    logging.info(">>>> Crawling Channel Job Finished: [%d] channels done. <<<<" % job_no)
+    logging.info(">>>> Crawling Channel Job Finished: [%d] channels done <<<<" % job_no)
 
   def __crawl_jd_channel(self, channel):
     '''爬取指定的品类的所有的信息'''
@@ -59,9 +59,9 @@ class JDGoods(object):
       (succeed, _max_page) = self.__crawl_jd_page(page_url, channel, False)
       page_count = page_count + 1
       if succeed:
-        logging.info(">>>> Crawling Channel [%s] [%d]/[%d]. <<<<" % (channel_name, page_count, max_page))
+        logging.info(">>>> Crawling Channel [%s] [%d]/[%d] <<<<" % (channel_name, page_count, max_page))
       else:
-        logging.error(">>>> Failed to Scrawl Channel [%s] [%d]/[%d]. <<<<" % (channel_name, page_count, max_page))
+        logging.error(">>>> Failed to Scrawl Channel [%s] [%d]/[%d] <<<<" % (channel_name, page_count, max_page))
       # 休眠一定时间
       time.sleep(random.random() * CRAWL_SLEEP_TIME_INTERVAL)
 
