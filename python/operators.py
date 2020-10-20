@@ -622,7 +622,8 @@ class DBOperator(object):
 
     def connect_db(self):
         '''链接数据库'''
-        return pymysql.connect(host='localhost', port=***REMOVED***, user='root',password='***REMOVED***', database='***REMOVED***')
+        return pymysql.connect(host=config.db.host, port=config.db.port, \
+            user=config.db.user, password=config.db.password, database=config.db.database)
 
 class RedisOperator(object):
     '''Redis 操作的封装类'''
@@ -642,7 +643,8 @@ class RedisOperator(object):
 
     def connect_redis(self):
         '''连接 Redis'''
-        pool = ConnectionPool(host='localhost', port=6379, db=0, password='')
+        pool = ConnectionPool(host=config.redis.host, port=config.redis.port,\
+            db=config.redis.db, password=config.redis.password)
         return StrictRedis(connection_pool=pool)
 
 redisOperator = RedisOperator()

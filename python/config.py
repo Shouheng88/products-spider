@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import logging
+import time, datetime
 
 # 爬虫相关的配置
 CRAWL_SLEEP_TIME_INTERVAL         = 1500  # 爬虫的睡眠时间（毫秒）
@@ -52,12 +53,52 @@ class GlobalConfig(object):
   '''全局的配置类，用来区分开发、测试和生产等环境'''
   def __init__(self):
     super().__init__()
+    self.logLevel = logging.WARNING
+    self.db = DBConfig()
+    self.redis = RedisConfig()
 
   def config_logging(self):
-      """配置应用日志"""
-      LOG_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
-      DATE_FORMAT = "%m/%d/%Y %H:%M:%S %p"
-      logging.basicConfig(filename='app.log', filemode='a', level=logging.DEBUG, format=LOG_FORMAT, datefmt=DATE_FORMAT)
-      logging.FileHandler(filename='app.log', encoding='utf-8')
+    """配置应用日志"""
+    LOG_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
+    DATE_FORMAT = "%m/%d/%Y %H:%M:%S %p"
+    filename = str(datetime.date.today()) + '.log'
+    logging.basicConfig(filename=filename, filemode='a', level=self.logLevel, format=LOG_FORMAT, datefmt=DATE_FORMAT)
+    logging.FileHandler(filename=filename, encoding='utf-8')
+
+  def set_env(self, env: str):
+    """设置环境信息"""
+    if env == 'local':
+      self.db.host = 'localhost'
+      self.db.port = ***REMOVED***
+      self.db.database = '***REMOVED***'
+      self.db.password = '***REMOVED***'
+      self.db.user = 'root'
+    elif env == 'test':
+      pass
+    elif env == 'server_local':
+      pass
+    elif env == 'server_remote':
+      pass
+    else:
+      logging.warning('Invalid Environment!')
+
+class DBConfig(object):
+  """数据库配置类"""
+  def __init__(self):
+    super().__init__()
+    self.host = ''
+    self.port = ***REMOVED***
+    self.user = ''
+    self.password = ''
+    self.database = ''
+
+class RedisConfig(object):
+  """Redis 配置类"""
+  def __init__(self):
+    super().__init__()
+    self.host = ''
+    self.port = 6379
+    self.db = 0
+    self.password = ''
 
 config = GlobalConfig()
