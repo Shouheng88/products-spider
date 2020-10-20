@@ -7,6 +7,8 @@ import re
 from bs4 import BeautifulSoup
 import traceback
 import json
+import time
+import random
 from selenium.webdriver.common.by import By
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -48,19 +50,20 @@ class JDGoods(object):
     channel_url = channel[CHANNEL_JD_URL_ROW_INDEX]
     channel_id = channel[CHANNEL_ID_ROW_INDEX]
     channel_name = channel[CHANNEL_NAME_ROW_INDEX]
-    # TODO 要爬取的最大的页数，数据库中也有一个对应的记录，输出完整的任务信息 
+    channel_max_page = channel[CHANNEL_MAXPAGE_ROW_INDEX]
     # 抓取分类的信息，也就是第一页的信息
     (succeed, max_page) = self.__crawl_jd_page(channel_url, channel, True)
     page_count = 1 # 已经抓取的页数
-    for page_num in range(1, min(max_page, JD_MAX_SEARCH_PAGE)):
+    for page_num in range(1, min(max_page, JD_MAX_SEARCH_PAGE, channel_max_page)):
       page_url = self.__get_page_url_of_page_number(channel_url, page_num)
-      # step 1: 从页面上解析最大的页数数据，并且根据该页数的限制进行只爬指定的页数
       (succeed, _max_page) = self.__crawl_jd_page(page_url, channel, False)
       page_count = page_count + 1
       if succeed:
-        logging.info("Succeed To Scrawl Channel %s [%d]," % (channel_name, page_count))
+        logging.info(">>>> Crawling Channel [%s] [%d]/[%d]. <<<<" % (channel_name, page_count, max_page))
       else:
-        logging.error("Failed To Scrawl Channel %s [%d]," % (channel_name, page_count))
+        logging.error(">>>> Failed to Scrawl Channel [%s] [%d]/[%d]. <<<<" % (channel_name, page_count, max_page))
+      # 休眠一定时间
+      time.sleep(random.random() * CRAWL_SLEEP_TIME_INTERVAL)
 
   def __get_page_url_of_page_number(self, jdurl, page_num):
     '''获取指定品类的指定的页码，用来统一实现获取指定的页码的地址的逻辑'''
@@ -119,6 +122,7 @@ class JDGoods(object):
       goods_list_items = goods_list_parent.find_all(class_="gl-item")
       for goods_list_item in goods_list_items: # 解析产品信息
         # 几个信息组成部分
+        sku_id = safeGetAttr(goods_list_item, 'data-sku', '')
         p_img = goods_list_item.find(class_="p-img")
         p_price = goods_list_item.find(class_="p-price")
         p_name = goods_list_item.find(class_="p-name")
@@ -132,6 +136,8 @@ class JDGoods(object):
           break
         # 解析具体的信息：注意防范异常，提高程序鲁棒性
         url = safeGetAttr(p_img.find("a"), "href", "")
+        if len(url) > 200: # 个别商品的链接存在问题
+          url = '//item.jd.com/%s.html' % sku_id
         img = safeGetAttr(p_img.find("img"), "data-lazy-img", "")
         if img == None:
           img = safeGetAttr(p_img.find("img"), "src", "")
@@ -144,6 +150,7 @@ class JDGoods(object):
         icons = safeGetText(p_icons.find("i"), "")
         # 组装产品信息，价格要扩大 100 倍
         goods_item = GoodsItem(name, promo, url, img, int(float(price)*100), prince_type, icons, vid)
+        goods_item.sku_id = sku_id
         goods_list.append(goods_item)
     except BaseException as e:
       succeed = False
@@ -185,12 +192,10 @@ class JDGoods(object):
     sku_id_map = {}
     for idx in range(0, len(goods_list)):
       goods_item = goods_list[idx]
-      last_split = goods_item.link.rfind("/")
-      last_point = goods_item.link.rfind(".")
-      if last_point != None and last_split != None:
-        sku_id = goods_item.link[(last_split+1):last_point]
-        sku_id_map[sku_id] = goods_item
-      sku_ids = sku_ids + sku_id
+      sku_id = goods_item.sku_id
+      sku_id_map[sku_id] = goods_item
+      if sku_id != '':
+        sku_ids = sku_ids + sku_id
       if idx != len(goods_list)-1:
         sku_ids = sku_ids + ","
     if len(sku_ids) != 0:

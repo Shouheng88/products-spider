@@ -5,7 +5,7 @@ import logging
 import time, datetime
 
 # 爬虫相关的配置
-CRAWL_SLEEP_TIME_INTERVAL         = 1500  # 爬虫的睡眠时间（毫秒）
+CRAWL_SLEEP_TIME_INTERVAL         = 10  # 爬虫的睡眠时间（秒）
 JD_MAX_SEARCH_PAGE                = 100    # 爬虫默认最大爬取的页数
 CHANNEL_HANDLE_TIMEOUT_IN_MINUTE  = 2     # 分类处理的超时时间，超时完不成则认为失败
 GOODS_HANDLE_TIMEOUT_IN_MINUTE    = 2     # 产品超时时间，同上
@@ -18,20 +18,26 @@ CHANNEL_NAME_ROW_INDEX          = 1
 CHANNEL_CAT_ROW_INDEX           = 3
 CHANNEL_TREEPATH_ROW_INDEX      = 4
 CHANNEL_JD_URL_ROW_INDEX        = 5
+CHANNEL_MAXPAGE_ROW_INDEX       = 7
 CHANNEL_LOCK_VERSION_ROW_INDEX  = 11
 # 商品的列索引
 GOODS_ID_ROW_INDEX              = 0
-GOODS_PRICE_ROW_INDEX           = 5
 GOODS_LINK_ROW_INDEX            = 3
-GOODS_SKU_ID_ROW_INDEX          = 10
-GOODS_VEN_ID_ROW_INDEX          = 12
-GOODS_CHANNEL_ID_ROW_INDEX      = 21
-GOODS_LOCK_VERSION_ROW_INDEX    = 24     # lock version
+GOODS_PRICE_ROW_INDEX           = 5
+GOODS_SKU_ID_ROW_INDEX          = 11
+GOODS_VEN_ID_ROW_INDEX          = 13
+GOODS_CHANNEL_ID_ROW_INDEX      = 22
+GOODS_LOCK_VERSION_ROW_INDEX    = 25     # lock version
 # 品牌的列索引
 BRAND_ID_ROW_INDEX              = 0
 BRAND_LINK_ROW_INDEX            = 4
 # 折扣的列索引
 DISCOUNT_BATCH_ID_ROW_INDEX     = 2
+
+# 数据源配置，用来区分不同的来源的数据
+SOURCE_JINGDONG                 = 0
+SOURCE_TAOBAO                   = 1
+SOURCE_TAMLL                    = 2
 
 # Redis 相关的键信息
 GOODS_PRICE_HISTORY_REDIS_KEY_PATTERN = "GOODS:PRICE:HISTORY:%d"  # 商品历史价格的 Redis 键的格式
@@ -73,6 +79,11 @@ class GlobalConfig(object):
       self.db.database = '***REMOVED***'
       self.db.password = '***REMOVED***'
       self.db.user = 'root'
+
+      self.redis.host = 'localhost'
+      self.redis.db = 0
+      self.redis.password = ''
+      self.redis.port = 6379
     elif env == 'test':
       pass
     elif env == 'server_local':

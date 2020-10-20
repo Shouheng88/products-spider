@@ -230,13 +230,13 @@ class DBOperator(object):
         for goods_item in link_map.values():
             sql = "INSERT INTO gt_item (\
             name, promo, link, image, price, price_type, icons, channel_id,\
-            channel, lock_version, updated_time, created_time, handling_time,\
+            channel, lock_version, updated_time, created_time, handling_time,source,\
             sku_id, product_id, comment_count, average_score, good_rate, comment_detail, vender_id\
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
             values.append((goods_item.name, goods_item.promo, goods_item.link, 
                 goods_item.image, goods_item.price, goods_item.price_type,
                 goods_item.icons, goods_item.channel_id, goods_item.channel,
-                0, int(get_current_timestamp()), int(get_current_timestamp()), 0, # 将 handling_time 置为 0
+                0, int(get_current_timestamp()), int(get_current_timestamp()), 0, SOURCE_JINGDONG, # 将 handling_time 置为 0, souce 置为 0
                 goods_item.sku_id, goods_item.product_id, goods_item.comment_count, 
                 goods_item.average_score, goods_item.good_rate, goods_item.get_comment_detail(), goods_item.venid))
         val = tuple(values)
@@ -654,10 +654,12 @@ class RedisOperator(object):
     '''Redis 操作的封装类'''
     def __init__(self):
         super().__init__()
-        self.r = self.connect_redis()
+        self.connected = False
+        self.r = None
 
     def add_goods_price_histories(self, goods_list):
         '''添加商品的历史价格信息'''
+        self.connect_redis()
         today = get_timestamp_of_today_start()
         rows = dBOperator.get_goods_list_from_database(goods_list)
         for row in rows:
@@ -668,9 +670,11 @@ class RedisOperator(object):
 
     def connect_redis(self):
         '''连接 Redis'''
+        if not self.connected:
+            self.connected = True
         pool = ConnectionPool(host=config.redis.host, port=config.redis.port,\
             db=config.redis.db, password=config.redis.password)
-        return StrictRedis(connection_pool=pool)
+        self.r = StrictRedis(connection_pool=pool)
 
 redisOperator = RedisOperator()
 
