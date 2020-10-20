@@ -1,0 +1,199 @@
+{
+    "stock": {
+        "freshEdi": null,
+        "Ext": "nationallySetWare:2,SendService:0,isOverseaPurchase:0,isCanUseJQ,isCanUseDQ,is7ToReturn:1,tsfw:0,isdangergoods:0,sfkc:498E49UN3333,wltsys,thwa:44,SoldOversea:3,storeProperty:0,IsSXQJ:1",
+        "realSkuId": 100004770235,
+        "pr": {
+            "promiseResult": "12:00前下单，预计<b>今天(09月16日)</b>送达",
+            "resultCode": 1
+        },
+        "promiseResult": "12:00前下单，预计<b>今天(09月16日)</b>送达",
+        "nationallySetWare": "2",
+        "sidDely": "16",
+        "channel": 1,
+        "serviceInfo": "由 <span class='hl_red'>京东</span> 发货, 并提供售后服务. ",
+        "rid": null,
+        "weightValue": "0.47kg",
+        "isSopUseSelfStock": "0",
+        "IsPurchase": true,
+        "areaLevel": 4,
+        "cla": [],
+        "eb": "0",
+        "ec": "-1",
+        "skuId": 100004770235,
+        "Dc": [],
+        "yjhxMap": {
+            "IsSXQJ": {
+                "type": 1,
+                "attr": "IsSXQJ",
+                "exceptAttr": "",
+                "urlName": "高价回收，极速到账",
+                "url": "//huishou.jd.com?s=1",
+                "tips": "免费提供闲置物品回收服务，完成回收后可获得京东E卡或现金。"
+            },
+            "IsSXQJ-1": {
+                "type": 2,
+                "attr": "IsSXQJ-1",
+                "exceptAttr": "",
+                "urlName": "高价回收，极速到账",
+                "url": "//huishou.jd.com?s=1",
+                "tips": "免费提供闲置物品回收服务，完成回收后可获得京东E卡或现金。"
+            }
+        },
+        "isWalMar": false,
+        "area": {
+            "townName": "",
+            "cityName": "南京市",
+            "success": true,
+            "provinceName": "江苏",
+            "countyName": "玄武区"
+        },
+        "ab": "-1",
+        "ac": "-1",
+        "ad": "-1",
+        "ae": "-1",
+        "skuState": 1,
+        "PopType": 0,
+        "af": "-1",
+        "promiseMark": "支持7天无理由退货（公开版拆封后不支持、合约版不支持）",
+        "ag": "-1",
+        "isSam": false,
+        "ir": [
+            {
+                "resultCode": 1,
+                "showName": "京准达",
+                "helpLink": "//help.jd.com/user/issue/103-983.html",
+                "iconTip": "选择京准达服务，可指定精确时间点收货；若京东责任超时，即时赔付",
+                "picUrl": "http://m.360buyimg.com/mobilecms/jfs/t3172/266/1698067915/1634/64a0c40e/57d25fcfNd9c62bb7.png",
+                "iconCode": "sendpay_zhun",
+                "iconType": 0,
+                "iconSrc": "京准达"
+            },
+            {
+                "resultCode": 1,
+                "showName": "211限时达",
+                "helpLink": "//help.jd.com/user/issue/103-983.html",
+                "iconTip": "上午下单，下午送达",
+                "picUrl": "//static.360buyimg.com/item/assets/picon/zhongbiao.png",
+                "iconCode": "sendpay_211",
+                "iconType": 0,
+                "iconSrc": "211限时达"
+            },
+            {
+                "resultCode": 1,
+                "showName": "预约送货",
+                "helpLink": "http://",
+                "iconTip": "京东物流为该商品提供预约送货服务",
+                "picUrl": "https://m.360buyimg.com/babel/jfs/t1/116316/15/7402/1031/5ec22ca4E713f857c/dd49784b20933cf5.png",
+                "iconCode": "service_yysh",
+                "iconType": 0,
+                "iconSrc": "预约送货"
+            },
+            {
+                "resultCode": 1,
+                "showName": "部分收货",
+                "helpLink": "http://",
+                "iconTip": "如果收件人收货时发现部分货物存在缺少配件、物流损等情形，京东物流提供订单半收服务",
+                "picUrl": "https://m.360buyimg.com/babel/jfs/t1/108073/34/18517/1071/5ec22ce0E11a3b1c5/f8ffea5f4cafa0f9.png",
+                "iconCode": "service_bfsh",
+                "iconType": 0,
+                "iconSrc": "部分收货"
+            },
+            {
+                "resultCode": 1,
+                "showName": "送货上门",
+                "helpLink": "https://help.jd.com/user/issue/254-4130.html",
+                "iconTip": "京东快递为您提供送货上门服务",
+                "picUrl": "https://m.360buyimg.com/babel/jfs/t1/115738/37/12143/1066/5f0c7d11E4faee520/de3879572e2b2014.png",
+                "iconCode": "service_sssm",
+                "iconType": 0,
+                "iconSrc": "送货上门"
+            },
+            {
+                "resultCode": 1,
+                "showName": "自提",
+                "helpLink": "//help.jd.com/user/issue/103-983.html",
+                "iconTip": "我们提供多种自提服务，包括京东自提点、自助提货柜、京东校园派、京东星配站、京东便民站等服务",
+                "picUrl": "//static.360buyimg.com/item/assets/picon/shoutixiang.png",
+                "iconCode": "special_ziti",
+                "iconType": 0,
+                "iconSrc": "自提"
+            },
+            {
+                "resultCode": 1,
+                "showName": "99元免基础运费(20kg内)",
+                "helpLink": "//help.jd.com/user/issue/103-983.html",
+                "iconTip": "所选地址自营订单满99元免基础运费(20kg内)，超出重量加收1元/kg续重运费。",
+                "picUrl": "//static.360buyimg.com/item/assets/picon/mianyunfei.png",
+                "iconCode": "free_delivery_zhong",
+                "iconType": 0,
+                "iconSrc": "99元免基础运费(20kg内)"
+            }
+        ],
+        "vd": null,
+        "rfg": 0,
+        "Dti": null,
+        "jdPrice": {
+            "p": "5499.00",
+            "ext": "{\"UPS\":{\"more\":true}}",
+            "op": "5499.00",
+            "id": "100004770235",
+            "up": null,
+            "m": "5500.00"
+        },
+        "rn": -1,
+        "support": [
+            {
+                "helpLink": "//huishou.jd.com?s=1&skuId=100004770235",
+                "showName": "高价回收，极速到账",
+                "id": "old2new",
+                "iconTip": "免费提供闲置物品回收服务，完成回收后可获得京东E卡或现金。"
+            },
+            {
+                "showName": "3元1G",
+                "id": "tcbg",
+                "iconTip": "告别营业厅排队等待，在线变更套餐更快捷更方便。还可享受赠话费、赠流量活动，点击查看详情。"
+            }
+        ],
+        "venderType": null,
+        "PlusFlagInfo": "",
+        "code": 1,
+        "isPlus": false,
+        "afsCode": 0,
+        "stockDesc": "<strong>有货</strong>",
+        "sid": "16",
+        "isJDexpress": "0",
+        "dcId": "7",
+        "sr": null,
+        "StockState": 33,
+        "StockStateName": "现货",
+        "dcashDesc": "",
+        "m": "0",
+        "self_D": {
+            "vid": 1000000127,
+            "df": null,
+            "cg": "9987:653:655",
+            "colType": 0,
+            "deliver": "Apple产品京东自营旗舰店",
+            "id": 1000000127,
+            "type": 0,
+            "vender": "Apple产品京东自营旗舰店",
+            "linkphone": "",
+            "url": "http://apple.jd.com/",
+            "po": "false"
+        },
+        "ArrivalDate": "",
+        "v": "0",
+        "promiseYX": {
+            "resultCode": 1,
+            "showName": "支持7天无理由退货",
+            "helpLink": "http://help.jd.com/user/issue/126-3780.html  ",
+            "iconTip": "支持7天无理由退货（公开版拆封后不支持、合约版不支持）",
+            "picUrl": "\\",
+            "iconCode": "service_qitiantuihuo",
+            "iconType": 0,
+            "iconSrc": "7天无理由退货（公开版拆封后不支持、合约版不支持）"
+        }
+    },
+    "choseSuit": []
+}

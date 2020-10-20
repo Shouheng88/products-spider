@@ -31,3 +31,15 @@ venderId 是店铺的 id，cat 是产品的具体分类
 如果需要查询促销更具体的信息，可以查看
 
 https://wq.jd.com/commodity/promo/get?skuid=100004770235
+
+获取商品的评论信息
+
+https://club.jd.com/comment/productCommentSummaries.action?referenceIds=100008348542,65332704581,100006487373
+
+从比一比价网的 api 请求，
+
+网址 ：http://b1bj.com/
+
+内部请求历史价格的：http://tool.manmanbuy.com/history.aspx?DA=1&action=gethistory&url=https%253A%2F%2Fitem.jd.com%2F100009081548.html&bjid=&spbh=&cxid=&zkid=&w=350&token=m9if2229dad9f89afe1cfaf6213e63029540uqbcaeopxr
+
+

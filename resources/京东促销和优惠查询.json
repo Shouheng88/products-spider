@@ -1,0 +1,157 @@
+{
+    "quanStatus": 200,
+    "quan": {
+        "title": "购指定苹果硬件商品满1元可返App Store 充值卡优惠券，数量有限，送完为止",
+        "actUrl": "//a.jd.com/mfdetail.html?mfid=27928",
+        "activityId": 27928
+    },
+    "adsStatus": 200,
+    "ads": [
+        {
+            "ad": "嗨购秒杀节，iPhone11领券立减900元！<a href=\"https://pro.jd.com/mall/active/3vhrJRWUDvx84MMSPJ2gnMuggew3/index.html\" target=\"_blank\">更多优惠！</a>",
+            "id": "AD_100008348542"
+        }
+    ],
+    "skuCoupon": [
+        {
+            "area": 1,
+            "toUrl": "https://pro.jd.com/mall/active/3vhrJRWUDvx84MMSPJ2gnMuggew3/index.html,https://pro.jd.com/mall/active/3vhrJRWUDvx84MMSPJ2gnMuggew3/index.html",
+            "userClass": 10000,
+            "overlapDesc": null,
+            "roleId": 37744831,
+            "trueDiscount": 900,
+            "couponKind": 1,
+            "discountDesc": "",
+            "discount": 900,
+            "batchId": 744327626,
+            "limitType": 5,
+            "url": "//coupon.jd.com/ilink/couponActiveFront/front_index.action?key=1d2f445155c347f7bd973d6d43daa8ff&roleId=37744831&to=https://pro.jd.com/mall/active/3vhrJRWUDvx84MMSPJ2gnMuggew3/index.html,https://pro.jd.com/mall/active/3vhrJRWUDvx84MMSPJ2gnMuggew3/index.html",
+            "couponStyle": 0,
+            "hourCoupon": 1,
+            "overlap": 1,
+            "couponType": 1,
+            "discountFlag": 0,
+            "quota": 5000,
+            "name": "仅可购买指定iPhone 11商品",
+            "timeDesc": "有效期2020-09-14至2020-09-28",
+            "addDays": 0,
+            "beginTime": "2020-09-14",
+            "endTime": "2020-09-28",
+            "key": "1d2f445155c347f7bd973d6d43daa8ff"
+        }
+    ],
+    "couponLimit": [
+        {
+            "sku": 100008348542,
+            "cid": 655,
+            "venderId": 1000000127,
+            "isCanUseDong": 1,
+            "isCanUseJing": 1,
+            "jdPrice": -1,
+            "limitCouponType": [
+                "limit_6"
+            ],
+            "limitCouponDesc": "",
+            "tagId": 0,
+            "limitCouponDetail": null,
+            "extendInfo": {
+                "innerUuid": "ae63093e-083d-4940-afe8-4004e47415d655780788986823709"
+            },
+            "global": false
+        }
+    ],
+    "limitedBuy": {
+        "resultFlag": true,
+        "resultErrMsg": null,
+        "promotionText": null,
+        "limitText": null,
+        "limitNum": 0,
+        "noSaleText": null,
+        "noSaleFlag": 0,
+        "resultExt": null
+    },
+    "promStatus": 200,
+    "prom": {
+        "ending": 1,
+        "hit": 0,
+        "tags": [
+            {
+                "code": "10",
+                "content": "（赠完即止）",
+                "customtag": {
+                    "1": "赠品"
+                },
+                "d": "1600617599",
+                "gifts": [
+                    {
+                        "sid": "100006112979",
+                        "mp": "jfs/t1/107828/19/7889/320744/5e61aef1Ef29abcd3/08d1afea95c6b2cb.jpg",
+                        "nm": "【推广体验-无实物仅权益】Apple Music新用户三个月免费试用(iOS&Android用户均可使用)",
+                        "num": 1,
+                        "gt": 2,
+                        "gs": 1,
+                        "ss": 1
+                    },
+                    {
+                        "sid": "100001961565",
+                        "mp": "jfs/t1/94145/5/7884/102552/5e008b51E0634a5ca/7bb3c8df4a076aec.jpg",
+                        "nm": "【免费体验】Apple产品“上手无忧”服务",
+                        "num": 1,
+                        "gt": 2,
+                        "gs": 1,
+                        "ss": 1
+                    },
+                    {
+                        "sid": "6484299",
+                        "mp": "jfs/t1/113440/20/17394/84111/5f5986c9E1f90c627/079cc014c8979616.jpg",
+                        "nm": "中国移动 购4G手机专享 2400G专属流量赠品 单独购买无效（需签收后7日内按照赠品短信提示完成信息上传 详见商详规则）",
+                        "num": 1,
+                        "gt": 2,
+                        "gs": 1,
+                        "ss": 1
+                    },
+                    {
+                        "sid": "100011091036",
+                        "mp": "jfs/t1/144080/12/3051/83489/5f100187E4fbe4439/5b626d78decf7c9e.jpg",
+                        "nm": "中国联通 腾讯大王卡 专属流量覆盖百款专属APP【iPhone手机专属】",
+                        "num": 1,
+                        "gt": 2,
+                        "gs": 1,
+                        "ss": 1
+                    },
+                    {
+                        "sid": "100013231530",
+                        "mp": "jfs/t1/113618/5/6465/160622/5eba5893E50581970/09fd73254d96e1b0.jpg",
+                        "nm": "电信星卡宝藏版 可领3个月视频会员200G专属大流量 （需签收后7日内按赠品订单页提示上传实名信息）",
+                        "num": 1,
+                        "gt": 2,
+                        "gs": 1,
+                        "ss": 1
+                    }
+                ],
+                "name": "赠品",
+                "pid": "200003352326_4",
+                "st": "1598596334",
+                "tr": 389440
+            }
+        ],
+        "pickOneTag": [
+            {
+                "code": "60",
+                "content": "购买1件可优惠换购热销商品",
+                "customtag": [],
+                "d": "1617646763",
+                "name": "换购",
+                "pid": "50085857189_10",
+                "st": "1586110853",
+                "tr": 17418604,
+                "adurl": "//search.jd.com/Search?activity_id=50085857189&activity_msku=100008348542",
+                "linkName": "立即换购"
+            }
+        ],
+        "giftPool": [],
+        "carGift": 0
+    },
+    "antiSpider": false,
+    "ip": ""
+}

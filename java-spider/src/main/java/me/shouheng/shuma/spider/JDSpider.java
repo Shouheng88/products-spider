@@ -57,6 +57,7 @@ public class JDSpider {
                 // 解析产品列表，返回一个列表，包含大概 30 个元素
                 Elements items = document.getElementById("J_goodsList").getElementsByClass("gl-item");
                 for (Element item : items) {
+                    String verndorId = item.getElementsByClass("p-img").select("div[data-venid]").attr("data-venid");
                     String url = item.getElementsByClass("p-img").select("a").attr("href"); // 产品的链接地址
                     String cover = item.getElementsByClass("p-img").select("img").attr("data-lazy-img"); // 或者 src，两个一起吧，哪个有值用哪个
                     String priceType = item.getElementsByClass("p-price").select("em").text(); // 价格符号，譬如 ￥ 等
