@@ -99,31 +99,40 @@ class DBOperator(object):
         # 1. updated_time 在今天之前，也就是每天最多爬取一次数据
         # 2. handling_time 在现在 2 分钟之前, 如果 2 分钟还没有完成，说明任务失败了
         # 3. 按照 updated_time 低到高排序，也就是上次完成时间
-        today_starter =get_timestamp_of_today_start()
+        today_starter = get_timestamp_of_today_start()
         handling_before = get_current_timestamp() - get_seconds_of_minutes(CHANNEL_HANDLE_TIMEOUT_IN_MINUTE)
-        sql = ("SELECT * FROM gt_channel WHERE updated_time < %s AND handling_time < %s ORDER BY updated_time LIMIT 1")
+        sql = ("SELECT * FROM gt_channel WHERE updated_time < %s AND handling_time < %s ORDER BY updated_time")
         val = (today_starter, handling_before)
         con = self.connect_db()
         cur = con.cursor()
-        cur.execute(sql, val)
-        rows = cur.fetchall()
-        # 拿到了所有的分类之后进行处理
         channel = None
-        for row in rows:
-            # 1. 对品来进行过滤，只需要对三级品类进行过滤，包含 两个 | 的时候代表三级品类
-            if len(row[CHANNEL_TREEPATH_ROW_INDEX].split("|")) == 3:
-                row_id = row[CHANNEL_TREEPATH_ROW_INDEX] # 记录 id
-                lock_version = row[CHANNEL_LOCK_VERSION_ROW_INDEX] # 乐观锁
-                # 2. 对数据库进行修改，标记完成时间，同时乐观锁 +1
-                ret = cur.execute("UPDATE gt_channel SET handling_time = %s, lock_version = %s WHERE id = %s AND lock_version = %s", 
-                    (get_current_timestamp(), lock_version+1, row_id, lock_version))
-                # 3. 更新成功，表示已经取到任务
-                if ret == 1:
-                    channel = row
-                    break
-        con.commit() # 提交事务
-        cur.close()
-        con.close()
+        try:
+            cur.execute(sql, val)
+            rows = cur.fetchall()
+            if len(rows) == 0:
+                logging.info('Empty channel to handle.')
+            # 拿到了所有的分类之后进行处理
+            for row in rows:
+                # 1. 对品来进行过滤，只需要对三级品类进行过滤，包含 两个 | 的时候代表三级品类
+                if len(row[CHANNEL_TREEPATH_ROW_INDEX].split("|")) == 3:
+                    row_id = row[CHANNEL_ID_ROW_INDEX] # 记录 id
+                    lock_version = row[CHANNEL_LOCK_VERSION_ROW_INDEX] # 乐观锁
+                    # 2. 对数据库进行修改，标记完成时间，同时乐观锁 +1
+                    ret = cur.execute("UPDATE gt_channel SET handling_time = %s, lock_version = %s WHERE id = %s AND lock_version = %s", 
+                        (get_current_timestamp(), lock_version+1, row_id, lock_version))
+                    # 3. 更新成功，表示已经取到任务
+                    if ret == 1:
+                        channel = row
+                        con.commit() # 提交事务
+                        break
+                    else:
+                        logging.error('Failed to get next channel to handle.')
+        except BaseException as e:
+            logging.error('Failed to get next channel to handle: %s\n' % traceback.format_exc())
+            con.rollback()
+        finally:
+            cur.close()
+            con.close()
         return channel
 
     def mark_channel_as_done(self, channel):
@@ -133,7 +142,23 @@ class DBOperator(object):
         2. 将 lock_version + 1
         3. 通过 lock_version 来做判断，防止因为任务超时，导致任务数据被其他人修改掉
         '''
-        pass
+        con = self.connect_db()
+        cur = con.cursor()
+        try:
+            row_id = channel[CHANNEL_ID_ROW_INDEX] # 记录 id
+            lock_version = channel[CHANNEL_LOCK_VERSION_ROW_INDEX] # 乐观锁
+            ret = cur.execute("UPDATE gt_channel SET handling_time = %s, lock_version = %s WHERE id = %s AND lock_version = %s", 
+                (get_current_timestamp(), lock_version+2, row_id, lock_version+1))
+            if ret == 1:
+                con.commit()
+            else:
+                logging.error("Failed to marking channel as done: %s\n" % traceback.format_exc())
+        except BaseException as e:
+            logging.error("Error while making channel as done: %s\n" % traceback.format_exc())
+            con.rollback()
+        finally:
+            cur.close()
+            con.close()
 
     def get_goods_list_from_database(self, goods_list):
         '''从数据库中查询指定的商品列表的商品信息'''

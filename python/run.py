@@ -4,8 +4,9 @@
 import logging
 import sys, getopt
 from category import *
-from goods import JDGoods as JDGoods
-from operators import DBOperator as DB
+from goods import *
+from details import *
+from prices import *
 from config import *
 
 command_info = "\
@@ -47,19 +48,35 @@ def main(argv):
                 print(command_info)
                 return
             __config_environment(env)
-            if arg == 'write_category':
+            if arg == 'write_category': # 讲处理好的品类信息写入到数据库中
                 logging.info("Writing jingdong handled categories to database ...")
                 jd = JDCategory()
                 jd.write_results()
-            elif arg == 'crawl_jd_category':
+            elif arg == 'crawl_jd_category': # 爬取京东的产品的品类信息
                 logging.info("Crawling jingdong categories ...")
                 jd = JDCategory()
                 jd.crawl()
-            elif arg == 'crawl_jd_goods':
+            elif arg == 'crawl_jd_goods': # 爬取京东每个品类的产品列表
                 logging.info("Crawling jingdong goods for every channel ...")
                 jd = JDGoods()
                 jd.crawl()
+            elif arg == 'crawl_jd_detail': # 爬取京东每个产品的详情信息
+                logging.info('Crawling jingdong detail for every goods ...')
+                jd = JDDetails()
+                jd.crawl()
+                pass
+            elif arg == 'crawl_jd_discount': # 爬取京东每个商品的折扣信息
+                logging.info('Crawling jingdong discount for every goods ...')
+                jd = JDPrices()
+                jd.crawl_discount()
+                pass
+            elif arg == 'crawl_jd_price_batch': # 爬取京东每个产品的价格信息
+                logging.info('Crawling jingdong price batch for pageable goods ...')
+                jd = JDPrices()
+                jd.crawl()
+                pass
             else:
+                print('Error: Unrecognized command.')
                 print(command_info)
 
 def __config_environment(env: str):

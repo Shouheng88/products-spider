@@ -34,19 +34,14 @@ class JDGoods(object):
     job_no = 0 # job 编号
     while True:      
       channel = db.next_channel_to_handle()
-      # 没有需要爬取的任务了
-      if channel == None:
+      if channel == None: # 没有需要爬取的任务了
         break
-      # 对任务进行解析
-      job_no = job_no + 1
-      logging.info("Crawling Channel (%d)：%s" % (job_no, str(channel)))
-      # 爬取某个品类的数据
-      self.__crawl_jd_channel(channel)
-      # 将指定的品类标记为完成
-      db.mark_channel_as_done(channel)
-    # 任务完成！！！！！撒花！！！！!
-    # *★,°*:.☆(￣▽￣)/$:*.°★* 
-    logging.info("Channel Scrawl Job Finished!!!")
+      job_no = job_no + 1 # 对任务进行解析
+      channel_name = channel[CHANNEL_NAME_ROW_INDEX]
+      logging.info(">>>> Crawling Channel: job[%d], channel[%s]. <<<<" % (job_no, channel_name))
+      self.__crawl_jd_channel(channel) # 爬取某个品类的数据
+      db.mark_channel_as_done(channel) # 将指定的品类标记为完成
+    logging.info(">>>> Crawling Channel Job Finished: [%d] channels done. <<<<" % job_no)
 
   def __crawl_jd_channel(self, channel):
     '''爬取指定的品类的所有的信息'''
