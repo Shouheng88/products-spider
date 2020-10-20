@@ -109,7 +109,7 @@ class GoodsParams(object):
     self.brand_url = ''
     self.store = ''
     self.store_url = ''
-    self.parameters = [] # [(), (), ...] 一个列表，每个元素是一个字典
+    self.parameters = {} # [(), (), ...] 一个列表，每个元素是一个字典
     self.packages = {} # 是一个哈希表 {g1: [(), (), ...], g2:[], ...}
 
   def __str__(self):

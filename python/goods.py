@@ -108,7 +108,7 @@ class JDGoods(object):
       index = pageText.find("/")
       max_page = int(pageText[(index+1):])
     except BaseException as e:
-      logging.error("Error While Getting Page Count : %s " % traceback.format_exc())
+      logging.error("Error While Getting Page Count:\n%s" % traceback.format_exc())
       succeed = False
     # 返回结果
     return (succeed, max_page)
@@ -154,7 +154,7 @@ class JDGoods(object):
         goods_list.append(goods_item)
     except BaseException as e:
       succeed = False
-      logging.error("Error While Getting Goods List : %s" % traceback.format_exc())
+      logging.error("Error While Getting Goods List:\n%s" % traceback.format_exc())
     # 返回结果
     return (succeed, goods_list)
 
@@ -181,7 +181,7 @@ class JDGoods(object):
         brand_list.append(brand_item)
     except BaseException as e:
       succeed = False
-      logging.error("Error While Getting Brand List : %s " % traceback.format_exc())
+      logging.error("Error While Getting Brand List:\n%s" % traceback.format_exc())
     # 返回结果
     return (succeed, brand_list)
 

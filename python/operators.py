@@ -293,9 +293,13 @@ class DBOperator(object):
         if goods_params.store_url != '':
             fileds_to_update['store_link'] = goods_params.store_url
         if len(goods_params.parameters) != 0:
-            fileds_to_update['parameters'] = str(goods_params.parameters).replace('\'', '"')
+            text = str(goods_params.parameters).replace('\'', '"')
+            if len(text) < MAX_LENGTH_OF_GOODS_PARAMETERS: # 当文字长度高于 3000 的时候就不赋值了，以保证 sql 执行不会出错
+                fileds_to_update['parameters'] = text
         if len(goods_params.packages) != 0:
-            fileds_to_update['packages'] = str(goods_params.packages).replace('\'', '"')
+            text = str(goods_params.packages).replace('\'', '"')
+            if len(text) < MAX_LENGTH_OF_GOODS_PACKAGES: # 同上
+                fileds_to_update['packages'] = text
         if len(fileds_to_update) == 0:
             logging.warning("Trying to Update But Nothing Need to Update.")
             return False
@@ -304,10 +308,9 @@ class DBOperator(object):
         idx_sql_part = 0
         for name, value in fileds_to_update.items():
             sql_part = sql_part + name + " = '" + value + "',"
-        sql_part = sql_part + ' lock_version = ' + str((lock_version + 1)) + ', '
+        sql_part = sql_part + ' lock_version = ' + str((lock_version + 2)) + ', '
         sql_part = sql_part + ' updated_time = ' + str(get_current_timestamp())
-        sql = "UPDATE gt_item SET %s WHERE id = %s and lock_version = %s" % (sql_part, goods_id, lock_version)
-        logging.debug(sql)
+        sql = "UPDATE gt_item SET %s WHERE id = %s and lock_version = %s" % (sql_part, goods_id, lock_version+1)
         succeed = True
         try:
             con = self.connect_db()
@@ -316,10 +319,12 @@ class DBOperator(object):
             if ret == 0:
                 succeed = False
                 logging.error("Failed To Update Goods Item.")
-            con.commit()
+            else:
+                con.commit()
         except BaseException as e:
             succeed = False
-            logging.error("Failed While Batch Insert: %s." % traceback.format_exc())
+            logging.error("Failed While Insert:\n%s" % traceback.format_exc())
+            logging.error("SQL:\n%s" % sql)
             con.rollback()
         finally:
             cur.close()
@@ -476,29 +481,38 @@ class DBOperator(object):
     def next_goods_to_handle_prameters(self):
         '''从商品列表中取出下一个需要解析的商品，设计的逻辑参考品类爬取相关的逻辑
         该方法现在只应用于查询商品的参数信息，现在的逻辑是每个产品只查询一次参数信息'''
-        today_starter = get_timestamp_of_today_start()
         handling_before = get_current_timestamp() - get_seconds_of_minutes(GOODS_HANDLE_TIMEOUT_IN_MINUTE)
         # 查询的时候增加 parameters 条件，也即只有当参数为空的时候才爬取，每个产品只爬取一次
-        sql = ("SELECT * FROM gt_item WHERE updated_time < %s and handling_time < %s and parameters = null ORDER BY updated_time LIMIt 1")
-        val = (today_starter, handling_before)
+        sql = ("SELECT * FROM gt_item WHERE \
+            handling_time < %s and \
+            parameters is null and \
+            price != -1 \
+            ORDER BY updated_time, id LIMIt 5") % (handling_before) # 每次取出来 5 个数据吧
         con = self.connect_db()
         cur = con.cursor()
-        cur.execute(sql, val)
-        rows = cur.fetchall()
-        # 拿到了商品之后进行处理
         goods_item = None
-        for row in rows:
-            row_id = row[GOODS_ID_ROW_INDEX]
-            lock_version = row[GOODS_LOCK_VERSION_ROW_INDEX]
-            # 尝试锁任务
-            ret = cur.execute("UPDATE gt_item SET handling_time = %s, lock_version = %s WHERE id = %s and lock_version = %s", 
-                (get_current_timestamp(), lock_version+1, row_id, lock_version))
-            if ret == 1:
-                goods_item = row
-                break
-        con.commit() # 提交事务
-        cur.close()
-        con.close()
+        try:
+            cur.execute(sql)
+            rows = cur.fetchall()
+            # 拿到了商品之后进行处理
+            for row in rows:
+                row_id = row[GOODS_ID_ROW_INDEX]
+                lock_version = row[GOODS_LOCK_VERSION_ROW_INDEX]
+                # 尝试锁任务
+                ret = cur.execute("UPDATE gt_item SET handling_time = %s, lock_version = %s WHERE id = %s and lock_version = %s", 
+                    (get_current_timestamp(), lock_version+1, row_id, lock_version))
+                if ret == 1:
+                    goods_item = row
+                    con.commit() # 提交事务
+                    break
+                else:
+                    logging.error('Crawling goods details: Failed to lock goods.')
+        except BaseException as e:
+            con.rollback() # 回滚
+            logging.error('Error while getting next goods to handle:\n %s' % traceback.format_exc())
+        finally:
+            cur.close()
+            con.close()
         return goods_item
 
     def next_goods_page_to_handle_prices(self):

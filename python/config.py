@@ -6,6 +6,7 @@ import time, datetime
 
 # 爬虫相关的配置
 CRAWL_SLEEP_TIME_INTERVAL         = 10  # 爬虫的睡眠时间（秒）
+CRAWL_SLEEP_TIME_MIDLLE           = 6   # 爬虫的中等长度的睡眠时间（秒）
 JD_MAX_SEARCH_PAGE                = 100    # 爬虫默认最大爬取的页数
 CHANNEL_HANDLE_TIMEOUT_IN_MINUTE  = 2     # 分类处理的超时时间，超时完不成则认为失败
 GOODS_HANDLE_TIMEOUT_IN_MINUTE    = 2     # 产品超时时间，同上
@@ -38,6 +39,10 @@ DISCOUNT_BATCH_ID_ROW_INDEX     = 2
 SOURCE_JINGDONG                 = 0
 SOURCE_TAOBAO                   = 1
 SOURCE_TAMLL                    = 2
+
+# 数据库字段的最大长度
+MAX_LENGTH_OF_GOODS_PARAMETERS  = 2800
+MAX_LENGTH_OF_GOODS_PACKAGES    = 2800
 
 # Redis 相关的键信息
 GOODS_PRICE_HISTORY_REDIS_KEY_PATTERN = "GOODS:PRICE:HISTORY:%d"  # 商品历史价格的 Redis 键的格式

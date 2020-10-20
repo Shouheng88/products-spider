@@ -4,6 +4,8 @@
 import requests
 import logging
 import re
+import time
+import random
 from bs4 import BeautifulSoup
 import traceback
 
@@ -21,27 +23,30 @@ class JDDetails(object):
 
   def crawl(self):
     '''爬取商品的详情信息，设计的逻辑同商品的列表页面'''
-    job_no = 0
+    job_no = 0 # 编号
     while True:
       goods_item = db.next_goods_to_handle_prameters()
       if goods_item == None:
         break
       job_no = job_no + 1
-      logging.info("Crawling Goods (%d): %s" % (job_no, str(goods_item)))
-      # 爬取一条数据
-      self.__crawl_goods_item(goods_item)
-    # 任务完成！！！*★,°*:.☆(￣▽￣)/$:*.°★* 。4
-    logging.info("Goods Scrawl Job Finished!!!")
+      goods_id = goods_item[GOODS_ID_ROW_INDEX]
+      logging.info(">>>> Crawling Goods Details: job[%d] goods[%d]. <<<<" % (job_no, goods_id))
+      self.__crawl_goods_item(goods_item) # 爬取某个商品的条目
+      time.sleep(random.random() * CRAWL_SLEEP_TIME_MIDLLE) # 休眠一定时间
+    logging.info(">>>> Crawling Goods Details Job Finished: [%d] channels done. <<<" % job_no)
 
   def __crawl_goods_item(self, goods_item):
     '''爬取商品的信息'''
-    goods_params = self.__crawl_from_page(goods_item)
-    # 更新到数据库当中
-    db.update_goods_parames_and_mark_done(goods_item, goods_params)
+    try:
+      goods_params = self.__crawl_from_page(goods_item)
+      # 更新到数据库当中
+      db.update_goods_parames_and_mark_done(goods_item, goods_params)
+    except BaseException as e:
+      logging.error('Error while crawling goods details:\n%s' % traceback.format_exc())
 
   def __crawl_from_page(self, goods_item):
     '''从商品的详情信息页面中提取商品的详情信息'''
-    goods_link = goods_item[GOODS_LINK_ROW_INDEX]
+    goods_link = 'https:' + goods_item[GOODS_LINK_ROW_INDEX]
     html = requests.get(goods_link, headers=REQUEST_HEADERS).text
     soup = BeautifulSoup(html, "html.parser")
     goods_params = GoodsParams()
@@ -61,19 +66,19 @@ class JDDetails(object):
             params_text = safeGetText(params_item, '')
             parts = params_text.split('：')
             if len(parts) > 1:
-              name = parts[0]
-              value = parts[1]
-            goods_params.parameters.append((name, value))
+              name = parts[0].strip()
+              value = parts[1].strip()
+            goods_params.parameters[name] = value
     # 解析产品包装信息
     package_groups = soup.find_all(class_="Ptable-item")
     for package_group in package_groups:
       group_name = safeGetText(package_group.find('h3'), '')
       group_elements = package_group.find_all(class_="clearfix")
-      packages = []
+      packages = {}
       for group_element in group_elements:
-        item_name = safeGetText(group_element.find('dt'), '')
-        item_value = safeGetText(group_element.find('dd'), '')
-        packages.append((item_name, item_value))
+        item_name = safeGetText(group_element.find('dt'), '').strip()
+        item_value = safeGetText(group_element.find('dd'), '').strip()
+        packages[item_name] = item_value
       goods_params.packages[group_name] = packages
     # 解析产品的店铺信息
     goods_params.store = safeGetText(soup.find(id='popbox').find('a'), '')
@@ -82,6 +87,7 @@ class JDDetails(object):
 
   def test(self):
     '''测试入口'''
+    # 如果数据库的字段发生了变化这里的参数要相应的改变哦~
     self.__crawl_goods_item((106, 0, 0, 'https://item.jd.com/100000695409.html', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6))
 
 if __name__ == "__main__":
