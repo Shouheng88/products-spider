@@ -19,9 +19,7 @@ class JDPrices(object):
 
   def crawl(self):
     '''获取商品的价格信息'''
-    job_no = 0
-    start_id = 0
-    item_count = 0
+    job_no = start_id = item_count = 0
     while True:
       goods_list = db.next_goods_page(SOURCE_JINGDONG, PRICES_HANDLE_PER_PAGE_SIZE, start_id)
       if len(goods_list) == 0: # 表示可能是数据加锁的时候失败了

@@ -20,29 +20,41 @@ class JDDetails(object):
   两个可以同时放在一起来完成，这样更符合真实的应用请求的效果。'''
   def __init__(self):
     super().__init__()
+    self.total_failed_count = 0
 
   def crawl(self):
     '''爬取商品的详情信息，设计的逻辑同商品的列表页面'''
-    job_no = 0 # 编号
+    job_no = start_id = item_count = 0
     while True:
-      goods_item = db.next_goods_to_handle_prameters(SOURCE_JINGDONG)
-      if goods_item == None:
+      goods_list = db.next_page_to_handle_prameters(SOURCE_JINGDONG, PARAMETERS_HANDLE_PER_PAGE_SIZE, start_id)
+      if len(goods_list) == 0: # 表示没有需要爬取参数的任务了
         break
+      item_count = item_count + len(goods_list)
+      start_id = goods_list[len(goods_list)-1][GOODS_ID_ROW_INDEX]
       job_no = job_no + 1
-      goods_id = goods_item[GOODS_ID_ROW_INDEX]
-      logging.info(">>>> Crawling Goods Details: job[%d] goods[%d] <<<<" % (job_no, goods_id))
-      self.__crawl_goods_item(goods_item) # 爬取某个商品的条目
-      time.sleep(random.random() * CRAWL_SLEEP_TIME_MIDLLE) # 休眠一定时间
-    logging.info(">>>> Crawling Goods Details Job Finished: [%d] channels done <<<" % job_no)
+      logging.info(">>>> Crawling Goods Details: job[%d], starter[%d] <<<<" % (job_no, start_id))
+      succeed = self.__crawl_goods_items(goods_list) # 爬取某个商品的条目
+      if not succeed:
+        logging.error(">>>> Crawling Goods Details Stopped Due to Fatal Error: job[%d] <<<<" % (job_no))
+        return
+      time.sleep(random.random() * CRAWL_SLEEP_TIME_INTERVAL) # 休眠一定时间
+    logging.info(">>>> Crawling Details Job Finished: [%d] jobs, [%d] items done <<<" % (job_no, item_count))
 
-  def __crawl_goods_item(self, goods_item):
+  def __crawl_goods_items(self, goods_list):
     '''爬取商品的信息'''
-    try:
-      goods_params = self.__crawl_from_page(goods_item)
-      # 更新到数据库当中
-      db.update_goods_parames_and_mark_done(goods_item, goods_params)
-    except BaseException as e:
-      logging.error('Error while crawling goods details:\n%s' % traceback.format_exc())
+    for goods_item in goods_list:
+      try:
+        (goods_params, html) = self.__crawl_from_page(goods_item)
+        succeed = db.update_goods_parames(goods_item, goods_params) # 更新到数据库当中
+        if not succeed:
+          raise Exception('Nothing parsed!')
+      except BaseException as e:
+        self.total_failed_count = self.total_failed_count+1
+        if self.total_failed_count > JD_DETAIL_MAX_FAILE_COUNT:
+          return False
+        logging.error('Error while crawling goods details:\n%s' % traceback.format_exc())
+        time.sleep(random.random()*CRAWL_SLEEP_TIME_SHORT) # 小憩一会儿
+    return True
 
   def __crawl_from_page(self, goods_item):
     '''从商品的详情信息页面中提取商品的详情信息'''
@@ -81,17 +93,24 @@ class JDDetails(object):
         packages[item_name] = item_value
       goods_params.packages[group_name] = packages
     # 解析产品的店铺信息
-    goods_params.store = safeGetText(soup.find(id='popbox').find('a'), '')
-    goods_params.store_url = safeGetAttr(soup.find(id='popbox').find('a'), 'href', '')
-    return goods_params
+    e_popbox = soup.find(id='popbox')
+    if e_popbox != None:
+      goods_params.store = safeGetText(e_popbox.find('a'), '')
+      goods_params.store_url = safeGetAttr(e_popbox.find('a'), 'href', '')
+    else:
+      e_contact = soup.select_one('.contact .name a')
+      goods_params.store = safeGetText(e_contact, '')
+      goods_params.store_url = safeGetAttr(e_contact, 'href', '')
+    return (goods_params, html)
 
   def test(self):
     '''测试入口'''
     # 如果数据库的字段发生了变化这里的参数要相应的改变哦~
-    self.__crawl_goods_item((106, 0, 0, 'https://item.jd.com/100000695409.html', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6))
+    self.__crawl_goods_items([(106, 0, 0, '//item.jd.com/56765001552.html', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6)])
 
 if __name__ == "__main__":
   '''测试入口'''
+  config.logLevel = logging.DEBUG
   config.config_logging()
   dt = JDDetails()
   dt.test()
