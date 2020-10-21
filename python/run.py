@@ -13,18 +13,20 @@ command_info = "\
 Options: \n\
     -h[--help]                  Help info\n\
     -c[--command]               Command\n\
-        write_category          : Write handled categories from excel to database\n\
-        crawl_jd_category       : Crawl jingdong categories\n\
-        crawl_jd_goods          : Crawl jingdong goods for every channel\n\
-        crawl_jd_detail         : Crawl jingdong item detail\n\
-        crawl_jd_discount       : Crawl jingdong item discount\n\
-        crawl_jd_price_batch    : Crawl jingdong item prices from batch api, used to detect item sold out\n\
+        %s          : Write handled categories from excel to database\n\
+        %s       : Crawl jingdong categories\n\
+        %s          : Crawl jingdong goods for every channel\n\
+        %s         : Crawl jingdong item detail\n\
+        %s       : Crawl jingdong item discount\n\
+        %s    : Crawl jingdong item prices from batch api, used to detect item sold out\n\
     -e[--env]                   Environment\n\
-        local                   : Local develop\n\
-        test                    : Test server\n\
-        server_local            : Server local\n\
-        server_remote           : Local connect to remote\
-    "
+        %s                   : Local develop\n\
+        %s                    : Test server\n\
+        %s            : Server local\n\
+        %s           : Local connect to remote\
+    " % (CMD_WRITE_JD_CATEGORY, CMD_CRAWL_JD_CATEGORY, CMD_CRAWL_JD_GOODS, \
+        CMD_CRAWL_JD_DETAIL, CMD_CRAWL_JD_DISCOUNT, CMD_CRAWL_JD_PRICES, \
+        ENV_LOCAL, ENV_TEST, ENV_SERVER_LOCAL, ENV_SERVER_REMOTE)
 
 def main(argv):
     """主程序入口"""
@@ -32,8 +34,11 @@ def main(argv):
         # :和= 表示接受参数
         opts, args = getopt.getopt(argv, "-h:-c:-e:", ["help", "command=", 'env='])
     except getopt.GetoptError:
-        print(command_info)
+        __show_invalid_command()
         sys.exit(2)
+    if len(opts) == 0:
+        __show_invalid_command()
+        return
     env = None # 环境
     for opt, arg in opts:
         if opt in ('-e', '--env'):
@@ -47,45 +52,62 @@ def main(argv):
                 print('Error: Missing evnironment.')
                 print(command_info)
                 return
-            __config_environment(env)
-            if arg == 'write_category': # 讲处理好的品类信息写入到数据库中
+            __config_environment(env, arg)
+            if arg == CMD_WRITE_JD_CATEGORY: # 讲处理好的品类信息写入到数据库中
                 logging.info("Writing jingdong handled categories to database ...")
                 jd = JDCategory()
                 jd.write_results()
-            elif arg == 'crawl_jd_category': # 爬取京东的产品的品类信息
+            elif arg == CMD_CRAWL_JD_CATEGORY: # 爬取京东的产品的品类信息
                 logging.info("Crawling jingdong categories ...")
                 jd = JDCategory()
                 jd.crawl()
-            elif arg == 'crawl_jd_goods': # 爬取京东每个品类的产品列表
+            elif arg == CMD_CRAWL_JD_GOODS: # 爬取京东每个品类的产品列表
                 logging.info("Crawling jingdong goods for every channel ...")
                 jd = JDGoods()
                 jd.crawl()
-            elif arg == 'crawl_jd_detail': # 爬取京东每个产品的详情信息
+            elif arg == CMD_CRAWL_JD_DETAIL: # 爬取京东每个产品的详情信息
                 logging.info('Crawling jingdong detail for every goods ...')
                 jd = JDDetails()
                 jd.crawl()
                 pass
-            elif arg == 'crawl_jd_discount': # 爬取京东每个商品的折扣信息
+            elif arg == CMD_CRAWL_JD_DISCOUNT: # 爬取京东每个商品的折扣信息
                 logging.info('Crawling jingdong discount for every goods ...')
                 jd = JDPrices()
                 jd.crawl_discount()
                 pass
-            elif arg == 'crawl_jd_price_batch': # 爬取京东每个产品的价格信息
+            elif arg == CMD_CRAWL_JD_PRICES: # 爬取京东每个产品的价格信息
                 logging.info('Crawling jingdong price batch for pageable goods ...')
                 jd = JDPrices()
                 jd.crawl()
                 pass
             else:
-                print('Error: Unrecognized command.')
-                print(command_info)
+                 __show_invalid_command()
+        else:
+            __show_invalid_command()
 
-def __config_environment(env: str):
+def __show_invalid_command():
+    print('Error: Unrecognized command.')
+    print(command_info)     
+
+def __config_environment(env: str, cmd: str):
     """配置日志"""
+    # 为日志增加尾缀，以区分各个指令的日志，便于排查问题
     if env == 'local' or env == 'test':
         config.logLevel = logging.DEBUG
+    if cmd == CMD_WRITE_JD_CATEGORY or cmd == CMD_CRAWL_JD_CATEGORY:
+        config.logAppendix = '-category'
+    elif cmd == CMD_CRAWL_JD_GOODS:
+        config.logAppendix = '-goods'
+    elif cmd == CMD_CRAWL_JD_DETAIL:
+        config.logAppendix = '-detail'
+    elif cmd == CMD_CRAWL_JD_PRICES:
+        config.logAppendix = '-prices'
+    elif cmd == CMD_CRAWL_JD_DISCOUNT:
+        config.logAppendix = '-discount'
+    # 其他属性配置
     config.config_logging()
     config.set_env(env)
-    logging.debug("Execution: env " + str(env))
+    logging.debug("Execution: env[%s] Cmd[%s]" % (env, cmd))
 
 if __name__ == "__main__":
     main(sys.argv[1:])

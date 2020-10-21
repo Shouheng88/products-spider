@@ -147,7 +147,7 @@ class DBOperator(object):
         try:
             row_id = channel[CHANNEL_ID_ROW_INDEX] # 记录 id
             lock_version = channel[CHANNEL_LOCK_VERSION_ROW_INDEX] # 乐观锁
-            ret = cur.execute("UPDATE gt_channel SET handling_time = %s, lock_version = %s WHERE id = %s AND lock_version = %s", 
+            ret = cur.execute("UPDATE gt_channel SET updated_time = %s, lock_version = %s WHERE id = %s AND lock_version = %s", 
                 (get_current_timestamp(), lock_version+2, row_id, lock_version+1))
             if ret == 1:
                 con.commit()
@@ -165,12 +165,11 @@ class DBOperator(object):
         rows = ()
         if len(goods_list) == 0:
             return rows
-        val = ""
+        link_list = []
         for idx in range(0, len(goods_list)):
             link = goods_list[idx].link
-            val = val + "'" + link + "'"
-            if idx != len(goods_list)-1:
-                val = val + ","
+            link_list.append("'%s'" % link)
+        val = ",".join(link_list)
         sql = "SELECT * FROM gt_item WHERE link IN (%s)" % val
         try:
             con = self.connect_db()
@@ -179,6 +178,7 @@ class DBOperator(object):
             rows = cur.fetchall()
         except:
             logging.error("Failed When Fetching Goods From Database.")
+            logging.error("SQL:\n%s" % sql)
         finally:
             cur.close()
             con.close()
@@ -193,6 +193,7 @@ class DBOperator(object):
         succeed = True
         # 从数据库中按照连接查询商品列表
         rows = self.get_goods_list_from_database(goods_list)
+        sql_map = {}
         try:
             con = self.connect_db()
             cur = con.cursor()
@@ -207,52 +208,52 @@ class DBOperator(object):
                         list_2_update[id] = existed_goods
                 # 执行批量更新操作
                 if len(list_2_update) != 0:
-                    self.__batch_update_goods(list_2_update, cur)
+                    self.__batch_update_goods(list_2_update, cur, sql_map)
                     # 如果没有需要插入的记录，就提交事务，下面的逻辑走不到了
                     if len(links) == 0:
                         con.commit()
             # 没有检索到数据 => 执行插入操作
             if len(links) != 0:
-                self.__batch_insert_goods(links, cur)
+                self.__batch_insert_goods(links, cur, sql_map)
                 con.commit()
         except BaseException as e:
             succeed = False
             logging.error("Failed While Batch Insert: \n%s" % traceback.format_exc())
+            logging.error("SQL:\n%s" % sql_map.get('sql'))
+            # logging.error("VAL:\n%s" % sql_map.get('val'))
             con.rollback()
         finally:
             cur.close()
             con.close()
         return succeed
 
-    def __batch_insert_goods(self, link_map, cur):
+    def __batch_insert_goods(self, link_map, cur, sql_map):
         '''向数据库中批量插入记录'''
         values = []
-        for goods_item in link_map.values():
-            sql = "INSERT INTO gt_item (\
+        sql = "INSERT INTO gt_item (\
             name, promo, link, image, price, price_type, icons, channel_id,\
             channel, lock_version, updated_time, created_time, handling_time,source,\
             sku_id, product_id, comment_count, average_score, good_rate, comment_detail, vender_id\
             ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
-            values.append((goods_item.name, goods_item.promo, goods_item.link, 
+        for goods_item in link_map.values():
+            values.append((goods_item.name.replace("'", "\'"), goods_item.promo.replace("'", "\'"), goods_item.link, 
                 goods_item.image, goods_item.price, goods_item.price_type,
-                goods_item.icons, goods_item.channel_id, goods_item.channel,
+                goods_item.icons.replace("'", "\'"), goods_item.channel_id, goods_item.channel,
                 0, int(get_current_timestamp()), int(get_current_timestamp()), 0, SOURCE_JINGDONG, # 将 handling_time 置为 0, souce 置为 0
                 goods_item.sku_id, goods_item.product_id, goods_item.comment_count, 
                 goods_item.average_score, goods_item.good_rate, goods_item.get_comment_detail(), goods_item.venid))
         val = tuple(values)
+        sql_map['sql'] = sql
+        sql_map['val'] = val
         cur.executemany(sql, val)
 
-    def __batch_update_goods(self, list_2_update, cur):
+    def __batch_update_goods(self, list_2_update, cur, sql_map):
         '''向数据库中批量更新记录'''
         # 拼接 id
-        val_ids = ""
-        idx_ids = 0
+        id_list = []
         for id in list_2_update.keys():
-            if idx_ids == len(list_2_update)-1:
-                val_ids = val_ids + str(id)
-            else:
-                val_ids = val_ids + str(id) + ','
-            idx_ids = idx_ids+1
+            id_list.append(str(id))
+        val_ids = ",".join(id_list)
         # 拼接 when then 语句
         when_then_map = {} 
         for id, goods_item in list_2_update.items():
@@ -262,20 +263,17 @@ class DBOperator(object):
                 if when_then == None:
                     when_then = ''
                 val = goods_item.get_value_of_filed_name(column_name)
-                if isinstance(val, str): # 如果是字符串类型的话，再包一层引号
-                    val = '\'' + val + '\''
+                if isinstance(val, str): # 如果是字符串类型的话，再包一层引号，还要处理 sql 中字符串的 ' 符号
+                    val = "'" + val.replace("'", "\\'") + "'"
                 when_then = when_then + '\n' + ' WHEN ' + str(id) + ' THEN ' + str(val)
                 when_then_map[column_name] = when_then
-        sql_when_then = ''
-        idx_when_then = 0
+        sql_when_then_list = []
         for column_name, when_then in when_then_map.items():
-            if idx_when_then == len(when_then_map)-1:
-                sql_when_then = sql_when_then + column_name + ' = CASE id ' + when_then + '\n END \n'
-            else:
-                sql_when_then = sql_when_then + column_name + ' = CASE id ' + when_then + '\n END, \n'
-            idx_when_then = idx_when_then+1
+            sql_when_then_list.append(column_name + " = CASE id " + when_then + "\n END")
+        sql_when_then = ", \n".join(sql_when_then_list) + " \n"
         # 拼接最终 sql
         sql = "UPDATE gt_item SET \n %s WHERE id IN ( %s ) " % (sql_when_then, val_ids)
+        sql_map['sql'] = sql
         cur.execute(sql)
 
     def update_goods_parames_and_mark_done(self, goods_item, goods_params):
@@ -285,11 +283,11 @@ class DBOperator(object):
         # 判断需要更新的字段，防止因为没有抓取到数据覆盖了之前爬取的结果
         fileds_to_update = {}
         if goods_params.brand != '':
-            fileds_to_update['brand'] = goods_params.brand
+            fileds_to_update['brand'] = goods_params.brand.replace("'", "\'")
         if goods_params.brand_url != '':
             fileds_to_update['brand_link'] = goods_params.brand_url
         if goods_params.store != '':
-            fileds_to_update['store'] = goods_params.store
+            fileds_to_update['store'] = goods_params.store.replace("'", "\'")
         if goods_params.store_url != '':
             fileds_to_update['store_link'] = goods_params.store_url
         if len(goods_params.parameters) != 0:
@@ -399,7 +397,7 @@ class DBOperator(object):
                     when_then = ''
                 val = brand_item.get_value_of_filed_name(column_name)
                 if isinstance(val, str): # 如果是字符串类型的话，再包一层引号
-                    val = '\'' + val + '\''
+                    val = "'" + val.replace("'", "\\'") + "'"
                 when_then = when_then + '\n' + ' WHEN ' + str(id) + ' THEN ' + str(val)
                 when_then_map[column_name] = when_then
         sql_when_then = ''
@@ -432,7 +430,7 @@ class DBOperator(object):
         values = []
         for brand in link_map.values():
             values.append((
-                brand.name,
+                brand.name.replace("'", "\'"),
                 brand.data_initial,
                 brand.logo,
                 brand.link,
@@ -701,7 +699,7 @@ class RedisOperator(object):
     def __init__(self):
         super().__init__()
         self.connected = False
-        self.r = None
+        self.r: StrictRedis = None
 
     def add_goods_price_histories(self, goods_list):
         '''添加商品的历史价格信息'''
@@ -712,7 +710,7 @@ class RedisOperator(object):
             goods_id = row[GOODS_ID_ROW_INDEX]
             price = row[GOODS_PRICE_ROW_INDEX]
             key = GOODS_PRICE_HISTORY_REDIS_KEY_PATTERN % goods_id
-            succeed = self.r.hset(key, str(today), price)
+            self.r.hset(key, str(today), price)
 
     def connect_redis(self):
         '''连接 Redis'''

@@ -10,4 +10,8 @@
 - pyppeteer
     install : `pip install pyppeteer`
     then : `pyppeteer-install`
-
+- xlwt & xlrd
+    install : `pip install xlwt`
+    install : `pip install xlrd`
+- pymysql:
+    install : `pip install pymysql`

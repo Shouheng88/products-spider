@@ -42,7 +42,7 @@ class GoodsItem(object):
       ret = self.comment.to_json()
     return ret
 
-  def get_value_of_filed_name(self, column_name):
+  def get_value_of_filed_name(self, column_name) -> str:
     '''根据数据库列的名称取出对应的字段'''
     if column_name == 'name':
       return self.name

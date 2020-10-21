@@ -25,6 +25,7 @@ class JDGoods(object):
   '''京东商品信息爬取。这个类主要用来从商品列表中抓取商品的价格等基础信息（不包含商品的具体的参数信息）'''
   def __init__(self):
     super().__init__()
+    self.total_failed_count = 0
 
   def crawl(self):
     '''
@@ -41,7 +42,10 @@ class JDGoods(object):
       job_no = job_no + 1 # 对任务进行解析
       channel_name = channel[CHANNEL_NAME_ROW_INDEX]
       logging.info(">>>> Crawling Channel: job[%d], channel[%s] <<<<" % (job_no, channel_name))
-      self.__crawl_jd_channel(channel) # 爬取某个品类的数据
+      succeed = self.__crawl_jd_channel(channel) # 爬取某个品类的数据
+      if not succeed:
+        logging.warning(">>>> Crawling Channel Job Stopped Due to Fatal Error! [%d] channels done <<<<" % job_no)
+        return
       db.mark_channel_as_done(channel) # 将指定的品类标记为完成
     logging.info(">>>> Crawling Channel Job Finished: [%d] channels done <<<<" % job_no)
 
@@ -53,17 +57,23 @@ class JDGoods(object):
     channel_max_page = channel[CHANNEL_MAXPAGE_ROW_INDEX]
     # 抓取分类的信息，也就是第一页的信息
     (succeed, max_page) = self.__crawl_jd_page(channel_url, channel, True)
+    max_page = min(max_page, JD_MAX_SEARCH_PAGE, channel_max_page)
     page_count = 1 # 已经抓取的页数
-    for page_num in range(1, min(max_page, JD_MAX_SEARCH_PAGE, channel_max_page)):
+    for page_num in range(1, max_page):
       page_url = self.__get_page_url_of_page_number(channel_url, page_num)
       (succeed, _max_page) = self.__crawl_jd_page(page_url, channel, False)
       page_count = page_count + 1
       if succeed:
         logging.info(">>>> Crawling Channel [%s] [%d]/[%d] <<<<" % (channel_name, page_count, max_page))
       else:
+        self.total_failed_count = self.total_failed_count + 1
         logging.error(">>>> Failed to Scrawl Channel [%s] [%d]/[%d] <<<<" % (channel_name, page_count, max_page))
+        if self.total_failed_count > JD_PAGE_MAX_FAIL_COUNT:
+          # 在这里进行监听，如果达到了最大从失败次数，就返回 False
+          return False
       # 休眠一定时间
       time.sleep(random.random() * CRAWL_SLEEP_TIME_INTERVAL)
+    return True
 
   def __get_page_url_of_page_number(self, jdurl, page_num):
     '''获取指定品类的指定的页码，用来统一实现获取指定的页码的地址的逻辑'''
@@ -88,15 +98,15 @@ class JDGoods(object):
     # 持久化处理爬取结果
     if succeed2:
       # 爬取京东商品的评论信息
-      self.__crawl_jd_comment_info(goods_list)
+      succeed4 = self.__crawl_jd_comment_info(goods_list)
       # 首先将商品列表信息更新数据库当中
-      db.batch_insert_or_update_goods(goods_list)
+      succeed5 = db.batch_insert_or_update_goods(goods_list)
       # 然后将价格历史记录到 Redis 中，Redis 的操作应该放在 DB 之后，因为我们要用到数据库记录的主键
       redis.add_goods_price_histories(goods_list)
     if succeed3 and first_page:
       # 对于每个品类，只在爬取第一页的时候更新品牌信息，减少服务器压力
       db.batch_insert_or_update_brands(brand_list)
-    return (succeed1 and succeed2, max_page)
+    return (succeed2 and succeed4 and succeed5, max_page)
 
   def __crawl_jd_max_page(self, soup):
     '''解析京东的最大页数'''
@@ -188,19 +198,33 @@ class JDGoods(object):
   def __crawl_jd_comment_info(self, goods_list):
     '''爬取京东商品的评论信息'''
     # 组装数据
-    sku_ids = ''
+    sku_id_list = []
     sku_id_map = {}
     for idx in range(0, len(goods_list)):
       goods_item = goods_list[idx]
       sku_id = goods_item.sku_id
       sku_id_map[sku_id] = goods_item
-      if sku_id != '':
-        sku_ids = sku_ids + sku_id
-      if idx != len(goods_list)-1:
-        sku_ids = sku_ids + ","
+      sku_id_list.append(str(sku_id))
+    sku_ids = ",".join(sku_id_list)
+    tried_count = 0 # 重试的次数
     if len(sku_ids) != 0:
       # 请求评论信息
-      json_comments = requests.get("https://club.jd.com/comment/productCommentSummaries.action?referenceIds=" + sku_ids, headers=REQUEST_HEADERS).text
+      json_comments = None
+      while tried_count < JD_COMMENT_MAX_TRAY_COUNT and json_comments == None:
+        tried_count = tried_count + 1
+        url = "https://club.jd.com/comment/productCommentSummaries.action?referenceIds=" + sku_ids
+        try:
+          # 进行请求，多次重试之后失败了就睡眠一会儿，然后进行重试
+          json_comments = requests.get(url, headers=REQUEST_HEADERS).text
+        except BaseException as e:
+          logging.error("Error while requesting comments:\n%s" % traceback.format_exc())
+          logging.error("Error while requesting comments:\n%s" % url)
+          # 小小的睡眠一段时间
+          time.sleep(random.random()*CRAWL_SLEEP_TIME_SHORT)
+      # 最终还是失败了，输出日志并退出程序
+      if json_comments == None:
+        logging.error("Failed to Get goods Comments.")
+        return False
       comments = json.loads(json_comments).get("CommentsCount")
       for comment in comments:
         sku_id = comment.get("SkuId")
@@ -216,6 +240,7 @@ class JDGoods(object):
             comment.get("GeneralCount"), comment.get("PoorCount"), comment.get("VideoCount"), \
               comment.get("AfterCount"), comment.get("OneYear"), comment.get("ShowCount"))
           goods_item.comment = goods_comment
+    return True
 
   def test(self):
     '''测试入口'''
