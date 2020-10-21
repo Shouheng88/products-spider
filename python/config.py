@@ -83,15 +83,24 @@ class GlobalConfig(object):
       self.db.host = 'localhost'
       self.db.port = ***REMOVED***
       self.db.database = '***REMOVED***'
-      self.db.password = '***REMOVED***'
       self.db.user = 'root'
+      self.db.password = '***REMOVED***'
 
       self.redis.host = 'localhost'
       self.redis.db = 0
       self.redis.password = ''
       self.redis.port = 6379
     elif env == 'test':
-      pass
+      self.db.host = 'localhost'
+      self.db.port = ***REMOVED***
+      self.db.database = 'shuma'
+      self.db.user = 'root'
+      self.db.password = '***REMOVED***'
+
+      self.redis.host = 'localhost'
+      self.redis.db = 0
+      self.redis.password = '12345'
+      self.redis.port = 6379
     elif env == 'server_local':
       pass
     elif env == 'server_remote':
