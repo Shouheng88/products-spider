@@ -19,12 +19,14 @@ Options: \n\
         %s          : Crawl jingdong goods for every channel\n\
         %s         : Crawl jingdong item detail\n\
         %s       : Crawl jingdong item discount\n\
-        %s    : Crawl jingdong item prices from batch api, used to detect item sold out\n\
+        %s         : Crawl jingdong item prices from batch api, used to detect item sold out\n\
     -e[--env]                   Environment\n\
         %s                   : Local develop\n\
         %s                    : Test server\n\
         %s            : Server local\n\
-        %s           : Local connect to remote\
+        %s           : Local connect to remote\n\
+    -a[--arg]                   Argument, specify an argument for given command. For example,\n\
+                                started id for prices and discount crawl job.\n\
     " % (CMD_WRITE_JD_CATEGORY, CMD_CRAWL_JD_CATEGORY, CMD_CRAWL_JD_GOODS, \
         CMD_CRAWL_JD_DETAIL, CMD_CRAWL_JD_DISCOUNT, CMD_CRAWL_JD_PRICES, \
         ENV_LOCAL, ENV_TEST, ENV_SERVER_LOCAL, ENV_SERVER_REMOTE)
@@ -33,7 +35,7 @@ def main(argv):
     """主程序入口"""
     try:
         # :和= 表示接受参数
-        opts, args = getopt.getopt(argv, "-h:-c:-e:-a", ["help", "command=", 'env=', 'arg='])
+        opts, args = getopt.getopt(argv, "-h:-c:-e:-a:", ["help", "command=", 'env=', 'arg='])
     except getopt.GetoptError:
         __show_invalid_command()
         sys.exit(2)
@@ -59,29 +61,29 @@ def main(argv):
                 return
             __config_environment(env, arg)
             if arg == CMD_WRITE_JD_CATEGORY: # 讲处理好的品类信息写入到数据库中
-                logging.info("Writing jingdong handled categories to database ...")
+                print("Start to write JD categories to database ...")
                 jd = JDCategory()
                 jd.write_results()
             elif arg == CMD_CRAWL_JD_CATEGORY: # 爬取京东的产品的品类信息
-                logging.info("Crawling jingdong categories ...")
+                print("CraStart to crawlwling JD category ...")
                 jd = JDCategory()
                 jd.crawl()
             elif arg == CMD_CRAWL_JD_GOODS: # 爬取京东每个品类的产品列表
-                logging.info("Crawling jingdong goods for every channel ...")
+                print("Start to crawl JD goods ...")
                 jd = JDGoods()
                 jd.crawl()
             elif arg == CMD_CRAWL_JD_DETAIL: # 爬取京东每个产品的详情信息
-                logging.info('Crawling jingdong detail for every goods ...')
+                print('Start to crawl JD detail ...')
                 jd = JDDetails()
                 jd.crawl()
                 pass
             elif arg == CMD_CRAWL_JD_DISCOUNT: # 爬取京东每个商品的折扣信息
-                logging.info('Crawling jingdong discount for every goods ...')
+                print('Start to crawl JD discount, starter[%s] ...' % param)
                 jd = JDDiscount()
-                jd.crawl()
+                jd.crawl(param)
                 pass
             elif arg == CMD_CRAWL_JD_PRICES: # 爬取京东每个产品的价格信息
-                logging.info('Crawling jingdong price batch for pageable goods ...')
+                print('Start to crawling JD prices, starter[%s] ...' % param)
                 jd = JDPrices()
                 jd.crawl(param)
                 pass

@@ -5,19 +5,25 @@ import logging
 import time, datetime
 
 # 爬虫相关的配置
-CRAWL_SLEEP_TIME_INTERVAL         = 10  # 爬虫的睡眠时间（秒）
+# 时间配置
+CRAWL_SLEEP_TIME_INTERVAL         = 12  # 爬虫的睡眠时间（秒）
 CRAWL_SLEEP_TIME_MIDLLE           = 6   # 爬虫的中等长度的睡眠时间（秒）
-CRAWL_SLEEP_TIME_SHORT            = 2   # 爬虫的较短长度的睡眠时间（秒）
+CRAWL_SLEEP_TIME_SHORT            = 3   # 爬虫的较短长度的睡眠时间（秒）
+# 重试配置
 JD_COMMENT_MAX_TRAY_COUNT         = 3   # 京东爬虫爬取评论的最大重试次数
+# 最大失败次数
 JD_PAGE_MAX_FAIL_COUNT            = 15  # 京东爬取数据的时候最大的失败次数，达到了这个数字之后认定为存在严重的问题，需要停止程序
 JD_DETAIL_MAX_FAILE_COUNT         = 50  # 抓取京东详情页面的最大失败次数
-JD_PRICE_MAX_FAILE_COUNT          = 50
+JD_PRICE_MAX_FAILE_COUNT          = 50  # 爬取价格的时候允许的最大的失败次数
+JD_DISCOUNT_MAX_FAILE_COUNT       = 50  # 爬取折扣的时候允许的最大的失败次数
 JD_MAX_SEARCH_PAGE                = 100    # 爬虫默认最大爬取的页数
+# 时间配置
 CHANNEL_HANDLE_TIMEOUT_IN_MINUTE  = 2     # 分类处理的超时时间，超时完不成则认为失败
 GOODS_HANDLE_TIMEOUT_IN_MINUTE    = 2     # 产品超时时间，同上
 PRICES_HANDLE_TIMEOUT_IN_MINUTE   = 2
+# 页数配置
 PRICES_HANDLE_PER_PAGE_SIZE       = 30
-DISCOUNT_HANDLE_PER_PAGE_SIZE     = 10
+DISCOUNT_HANDLE_PER_PAGE_SIZE     = 5
 PARAMETERS_HANDLE_PER_PAGE_SIZE   = 5
 
 # 分类的列索引

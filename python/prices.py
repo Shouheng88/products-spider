@@ -19,7 +19,7 @@ class JDPrices(object):
     super().__init__()
     self.total_failed_count = 0
 
-  def crawl(self, start_id_: None):
+  def crawl(self, start_id_ = None):
     '''
     获取商品的价格信息，这个任务的作用是用来清理已经下架的商品，爬取的时间周期可以长一些
     接受参数 start_id_ 用来手动指定开始的 id，这样就可以从上次失败中进行恢复
@@ -68,7 +68,7 @@ class JDPrices(object):
       skuid = goods_list[idx][GOODS_SKU_ID_ROW_INDEX]
       skuid_list.append(str(skuid))
     sku_ids = ','.join(skuid_list)  
-    prices_json = requests.get("https://p.3.cn/prices/mgets?skuIds=" + sku_ids, headers=REQUEST_HEADERS).text
+    prices_json = requests.get("http://p.3.cn/prices/mgets?skuIds=" + sku_ids, headers=REQUEST_HEADERS).text
     prices = json.loads(prices_json)
     soldout_list = [] # 已下架的商品列表
     for idx in range(0, len(prices)):

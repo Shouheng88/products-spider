@@ -518,66 +518,12 @@ class DBOperator(object):
         rows = cur.fetchall()
         return rows
 
-    def next_goods_page_to_handle(self, source: int, page_size: int, start_id: int):
-        '''
-        从商品列表中按照页的方式来解析商品的价格信息
-        返回信息包含两个字段，task_done 表示任务是否已完成，其二返回的是数据列表
-        如果 task_done=True 则表示没有需要处理的任务了；否则表示有任务需要处理，
-        而如果 goods_list 是空的话，只能表示更新数据库的时候失败了，此时应该进行重试。
-        这里使用起止 id 的方式进行搜索，没有采用 channel 的集群查询方式，
-        如果需要设计成集群的，可以采用哈希算法，对 id 取余将指定的任务分配到各个机子上面。
-        '''
-        goods_list = []
-        val_ids = []
-        handling_before = get_current_timestamp() - get_seconds_of_minutes(PRICES_HANDLE_TIMEOUT_IN_MINUTE)
-        # 再次过滤掉已经下架了商品（price 为 -1 的商品）
-        sql = ("SELECT * FROM gt_item WHERE \
-            handling_time < %s \
-            AND price != -1 \
-            AND source = %s \
-            AND id > %s \
-            ORDER BY id LIMIT %s")
-        val = (handling_before, source, start_id, page_size)
-        con = self.connect_db()
-        cur = con.cursor()
-        task_done = True
-        try:
-            cur.execute(sql, val)
-            rows = cur.fetchall()
-            if len(rows) != 0:
-                task_done = False
-                handling_time_when_then = ''
-                lock_version_when_then = ''
-                # 批量标记为正在处理的状态
-                for row in rows:
-                    goods_list.append(row)
-                    row_id = row[GOODS_ID_ROW_INDEX]
-                    lock_version = row[GOODS_LOCK_VERSION_ROW_INDEX]
-                    val_ids.append(row_id)
-                    lock_version_when_then = lock_version_when_then + " WHEN " + str(row_id) + " THEN " + str(lock_version+1) + "\n"
-                    handling_time_when_then = handling_time_when_then + " WHEN " + str(row_id) + " THEN " + str(get_current_timestamp()) + "\n"
-                sql_when_then = 'lock_version = CASE id \n ' + lock_version_when_then + " END,\n"
-                sql_when_then = sql_when_then + ' handling_time = CASE id \n' + handling_time_when_then + ' END\n'
-                sql = "UPDATE gt_item SET \n %s WHERE id IN %s" % (sql_when_then, tuple(val_ids))
-                ret = cur.execute(sql)
-                if ret == len(rows):
-                    con.commit() # 提交事务
-                else:
-                    logging.error('Failed to get page goods to crawl discounts.')
-        except BaseException as e:
-            con.rollback()
-            logging.error('Error while getting page goods to crawl discount:%s\n' % traceback.format_exc())
-        finally:
-            cur.close()
-            con.close()
-        return (task_done, goods_list)
-
     def update_goods_list_as_sold_out(self, goods_list):
         '''将指定的产品列表标记为下架状态'''
         succeed = True
         id_list = []
-        for idx in range(0, len(goods_list)):
-            id_list.append(str(goods_list[idx][GOODS_ID_ROW_INDEX]))
+        for good_item in goods_list:
+            id_list.append(str(good_item[GOODS_ID_ROW_INDEX]))
         ids = ','.join(id_list)
         if len(ids.strip()) == 0:
             logging.info("Empty Goods Id List.")
@@ -600,46 +546,45 @@ class DBOperator(object):
 
     def get_channels_of_channel_ids(self, channel_id_list):
         '''通过 channel id 列表获取 channel 数据'''
-        ids = ''
-        for idx in range(0, len(channel_id_list)):
-            channel_id = channel_id_list[idx]
-            ids = ids + str(channel_id)
-            if len(channel_id_list)-1 != idx:
-                ids = ids + ','
+        id_list = []
+        for id in channel_id_list:
+            id_list.append(str(id))
+        ids = ','.join(id_list)
         if len(ids.strip()) == 0:
             logging.info("Empty Channel Id List!")
             return
-        try:
-            sql = 'SELECT * FROM gt_channel WHERE id IN ( %s )' % ids
-            logging.debug(sql)
+        sql = 'SELECT * FROM gt_channel WHERE id IN ( %s )' % ids
+        rows = []
+        try: 
             con = self.connect_db()
             cur = con.cursor()
             cur.execute(sql)
             rows = cur.fetchall()
         except BaseException as e:
             logging.error("Error While Getting Channels: %s" % traceback.format_exc())
+            logging.error("SQL:\n%s" % sql)
         return rows
 
-    def get_discounts_of_batch_ids(self, batch_list):
+    def get_discounts_of_batch_ids(self, batch_id_list):
         '''根据传入的折扣的 id 列表查出数据库中存储的折扣记录'''
-        batch_ids = ''
-        for idx in range(0, len(batch_list)):
-            batch_id = batch_list[idx]
-            batch_ids = batch_ids + str(batch_id)
-            if len(batch_list)-1 != idx:
-                batch_ids = batch_ids + ','
+        rows = []
+        id_list = []
+        for id in batch_id_list:
+            id_list.append(str(id))
+        batch_ids = ','.join(id_list)
         if len(batch_ids.strip()) == 0:
-            logging.info("Empty Batch Id List!")
-            return
+            logging.info("Empty Batch Id List!") # 出现这个信息属于正常现象，即商品没有折扣信息
+            return rows
+        sql = "SELECT * FROM gt_discount WHERE batch_id IN ( %s )" % batch_ids
         try:
-            sql = "SELECT * FROM gt_discount WHERE batch_id IN ( %s )" % batch_ids
             con = self.connect_db()
             cur = con.cursor()
             cur.execute(sql)
-            return cur.fetchall()
+            rows = cur.fetchall()
         except BaseException as e:
-            logging.error("Error While Getting Discounts : %s" % traceback.format_exc())
-        return None
+            logging.error("Error While Getting Discounts:\n%s" % traceback.format_exc())
+            logging.error("SQL:\n%s" % sql)
+        return rows
 
     def batch_insert_discounts(self, discounts):
         '''批量向数据库中插入折扣信息'''
@@ -647,23 +592,21 @@ class DBOperator(object):
         if len(discounts) == 0:
             logging.info("Empty Discounts To Insert!!")
             return succeed
+        sql = "INSERT INTO gt_discount (goods_id, batch_id, quota, discount, start_time, end_time,\
+            lock_version, updated_time, created_time) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
         try:
             values = []
             con = self.connect_db()
             cur = con.cursor()
             for discount in discounts:
-                sql = "INSERT INTO gt_discount (\
-                goods_id, batch_id, quota, discount, start_time, end_time,\
-                lock_version, updated_time, created_time\
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
                 values.append((discount.goods_id, discount.batch_id, discount.quota, discount.discount, 
-                    discount.start_time, discount.end_time, 0, int(get_current_timestamp()), int(get_current_timestamp())))
-            val = tuple(values)
-            cur.executemany(sql, val)
+                    discount.start_time, discount.end_time, 0, get_current_timestamp(), get_current_timestamp()))
+            cur.executemany(sql, tuple(values))
             con.commit()
         except BaseException as e:
             succeed = False
-            logging.error("Failed While Batch Insert Discounts: \n%s" % traceback.format_exc())
+            logging.error("Failed While Batch Insert Discounts:\n%s" % traceback.format_exc())
+            logging.error("SQL:\n%s" % sql)
             con.rollback()
         finally:
             cur.close()
