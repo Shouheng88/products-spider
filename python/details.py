@@ -32,13 +32,13 @@ class JDDetails(object):
       item_count = item_count + len(goods_list)
       start_id = goods_list[len(goods_list)-1][GOODS_ID_ROW_INDEX]
       job_no = job_no + 1
-      logging.info(">>>> Crawling Goods Details: job[%d], starter[%d] <<<<" % (job_no, start_id))
+      logging.info(">>>> Crawling Goods Details: job[%d], starter[%d], [%d] items done. <<<<" % (job_no, start_id, item_count))
       succeed = self.__crawl_goods_items(goods_list) # 爬取某个商品的条目
       if not succeed:
-        logging.error(">>>> Crawling Goods Details Stopped Due to Fatal Error: job[%d] <<<<" % (job_no))
+        logging.error(">>>> Crawling Goods Details Stopped Due to Fatal Error: job[%d], starter[%d], [%d] items done. <<<<" % (job_no, start_id, item_count))
         return
       time.sleep(random.random() * CRAWL_SLEEP_TIME_INTERVAL) # 休眠一定时间
-    logging.info(">>>> Crawling Details Job Finished: [%d] jobs, [%d] items done <<<" % (job_no, item_count))
+    logging.info(">>>> Crawling Details Job Finished: [%d] jobs, [%d] items done. <<<" % (job_no, item_count))
 
   def __crawl_goods_items(self, goods_list):
     '''爬取商品的信息'''

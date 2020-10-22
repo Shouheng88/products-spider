@@ -574,27 +574,24 @@ class DBOperator(object):
 
     def update_goods_list_as_sold_out(self, goods_list):
         '''将指定的产品列表标记为下架状态'''
-        succeed = False
-        ids = ''
+        succeed = True
+        id_list = []
         for idx in range(0, len(goods_list)):
-            goods_item = goods_list[idx]
-            goods_id = goods_item[GOODS_ID_ROW_INDEX]
-            ids = ids + str(goods_id)
-            if len(goods_list)-1 != idx:
-                ids = ids + ','
+            id_list.append(str(goods_list[idx][GOODS_ID_ROW_INDEX]))
+        ids = ','.join(id_list)
         if len(ids.strip()) == 0:
             logging.info("Empty Goods Id List.")
-            return True
+            return False
+        sql = "UPDATE gt_item SET price = -1, updated_time = %s WHERE id IN ( %s )" % (str(get_current_timestamp()), ids)
         try:
-            sql = "UPDATE gt_item SET price = -1, updated_time = %s WHERE id IN ( %s )" % (str(get_current_timestamp()), ids)
-            logging.debug(sql)
             con = self.connect_db()
             cur = con.cursor()
             cur.execute(sql)
-            succeed = True
             con.commit()
         except:
+            succeed = False
             logging.error("Failed While Batch Update Sold Out:\n%s" % traceback.format_exc())
+            logging.error("SQL:\n%s" % sql)
             con.rollback()
         finally:
             cur.close()

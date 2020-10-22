@@ -11,6 +11,7 @@ CRAWL_SLEEP_TIME_SHORT            = 2   # 爬虫的较短长度的睡眠时间�
 JD_COMMENT_MAX_TRAY_COUNT         = 3   # 京东爬虫爬取评论的最大重试次数
 JD_PAGE_MAX_FAIL_COUNT            = 15  # 京东爬取数据的时候最大的失败次数，达到了这个数字之后认定为存在严重的问题，需要停止程序
 JD_DETAIL_MAX_FAILE_COUNT         = 50  # 抓取京东详情页面的最大失败次数
+JD_PRICE_MAX_FAILE_COUNT          = 50
 JD_MAX_SEARCH_PAGE                = 100    # 爬虫默认最大爬取的页数
 CHANNEL_HANDLE_TIMEOUT_IN_MINUTE  = 2     # 分类处理的超时时间，超时完不成则认为失败
 GOODS_HANDLE_TIMEOUT_IN_MINUTE    = 2     # 产品超时时间，同上
@@ -64,7 +65,7 @@ CMD_CRAWL_JD_CATEGORY           = 'crawl_jd_category'
 CMD_CRAWL_JD_GOODS              = 'crawl_jd_goods'
 CMD_CRAWL_JD_DETAIL             = 'crawl_jd_detail'
 CMD_CRAWL_JD_DISCOUNT           = 'crawl_jd_discount'
-CMD_CRAWL_JD_PRICES             = 'crawl_jd_price_batch'
+CMD_CRAWL_JD_PRICES             = 'crawl_jd_prices'
 
 # 环境值常量
 ENV_LOCAL                       = 'local'

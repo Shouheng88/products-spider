@@ -8,6 +8,7 @@ from goods import *
 from details import *
 from prices import *
 from config import *
+from discount import *
 
 command_info = "\
 Options: \n\
@@ -32,7 +33,7 @@ def main(argv):
     """主程序入口"""
     try:
         # :和= 表示接受参数
-        opts, args = getopt.getopt(argv, "-h:-c:-e:", ["help", "command=", 'env='])
+        opts, args = getopt.getopt(argv, "-h:-c:-e:-a", ["help", "command=", 'env=', 'arg='])
     except getopt.GetoptError:
         __show_invalid_command()
         sys.exit(2)
@@ -43,6 +44,10 @@ def main(argv):
     for opt, arg in opts:
         if opt in ('-e', '--env'):
             env = arg
+    param = None # 参数
+    for opt, arg in opts:
+        if opt in ('-a', '--arg'):
+            param = arg
     for opt, arg in opts:
         if opt in ('-h', '--help'):
             print(command_info)
@@ -72,13 +77,13 @@ def main(argv):
                 pass
             elif arg == CMD_CRAWL_JD_DISCOUNT: # 爬取京东每个商品的折扣信息
                 logging.info('Crawling jingdong discount for every goods ...')
-                jd = JDPrices()
-                jd.crawl_discount()
+                jd = JDDiscount()
+                jd.crawl()
                 pass
             elif arg == CMD_CRAWL_JD_PRICES: # 爬取京东每个产品的价格信息
                 logging.info('Crawling jingdong price batch for pageable goods ...')
                 jd = JDPrices()
-                jd.crawl()
+                jd.crawl(param)
                 pass
             else:
                  __show_invalid_command()
