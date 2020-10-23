@@ -60,8 +60,8 @@ class JDDiscount(object):
     for goods_item in goods_list:
       cat = cat_map.get(goods_item[GOODS_CHANNEL_ID_ROW_INDEX])
       if cat != None:
-        req = "http://cd.jd.com/promotion/v2?skuId=%s&area=12_904_3373_0&venderId=%s&cat=%s" % (
-          goods_item[GOODS_SKU_ID_ROW_INDEX], goods_item[GOODS_VEN_ID_ROW_INDEX], cat)
+        req = "http://cd.jd.com/promotion/v2?skuId=%s&area=%s&venderId=%s&cat=%s" % (
+          goods_item[GOODS_SKU_ID_ROW_INDEX], DISCOUNT_AREA, goods_item[GOODS_VEN_ID_ROW_INDEX], cat)
         try:
           headers = REQUEST_HEADERS
           resp_text = requests.get(req, headers=headers).text

@@ -12,6 +12,7 @@ from email.mime.multipart import MIMEMultipart
 from email.utils import parseaddr, formataddr
 import traceback
 import logging
+from fake_useragent import UserAgent
 
 def get_timestamp_of_today_start():
   """
@@ -33,8 +34,8 @@ def get_current_timestamp():
   return int(time.time())
 
 def get_seconds_of_minutes(minutes):
-    """获取指定的分钟的描述"""
-    return minutes * 60
+  """获取指定的分钟的描述"""
+  return minutes * 60
 
 def safeGetAttr(node, attr, value):
   '''安全的方式来获取属性，用于 BeautifulSoup，防止程序运行中出现空指针异常'''
@@ -82,18 +83,24 @@ def send_email(subject: str, message: str, filename = None):
       # 添加到MIMEMultipart:
       msg.attach(mime)
   try:
-      smtpObj = smtplib.SMTP()
-      smtpObj.connect('smtp.qq.com')
-      smtpObj.login('***REMOVED***@qq.com', 'ffknbklvxzvncajd')
-      smtpObj.sendmail('***REMOVED***@qq.com', receivers, msg.as_string())
-      logging.info("Succeed to send email.")
+    smtpObj = smtplib.SMTP()
+    smtpObj.connect('smtp.qq.com')
+    smtpObj.login('***REMOVED***@qq.com', 'ffknbklvxzvncajd')
+    smtpObj.sendmail('***REMOVED***@qq.com', receivers, msg.as_string())
+    logging.info("Succeed to send email.")
   except BaseException as e:
-      print("Failed to send email:\n%s" % traceback.format_exc())
-      logging.error("Failed to send email:\n%s" % traceback.format_exc())
+    print("Failed to send email:\n%s" % traceback.format_exc())
+    logging.error("Failed to send email:\n%s" % traceback.format_exc())
 
 def _format_addr(s):
-    name, addr = parseaddr(s)
-    return formataddr((Header(name, 'utf-8').encode(), addr))
+  name, addr = parseaddr(s)
+  return formataddr((Header(name, 'utf-8').encode(), addr))
+
+ua = UserAgent()
+
+def random_useragent():
+  return ua.random
 
 if __name__ == "__main__":
-    send_email('京东价格爬虫【完成】报告', '[%d] jobs [%d] items done' % (1, 100))
+  ua = UserAgent()
+  print(ua.random)
