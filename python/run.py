@@ -54,6 +54,8 @@ def main(argv):
         if opt in ('-h', '--help'):
             print(command_info)
             sys.exit()
+        elif opt in ("-a", "--arg", "-e", "--env"):
+            continue # 过滤掉
         elif opt in ("-c", "--command"):
             if env == None:
                 print('Error: Missing evnironment.')

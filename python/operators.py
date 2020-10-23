@@ -506,15 +506,19 @@ class DBOperator(object):
         从商品列表中读取一页数据来查询商品的价格信息，这里查询到了数据之后就直接返回了，
         处理数据的时候也不会进行加锁和标记.
         """
+        sql_like_parts = []
+        for filter in DISCOUNT_FILTER_LIKES: # 增加 icons 条件进行过滤，只对折扣商品进行检索
+            sql_like_parts.append("icons LIKE '%" + filter +  "%'")
+        sql_like = ' OR '.join(sql_like_parts)
         sql = ("SELECT * FROM gt_item WHERE \
             price != -1 \
             AND source = %s \
             AND id > %s \
-            ORDER BY id LIMIT %s")
-        val = (source, start_id, page_size)
+            AND (%s) \
+            ORDER BY id LIMIT %s") % (source, start_id, sql_like, page_size)
         con = self.connect_db()
         cur = con.cursor()
-        cur.execute(sql, val)
+        cur.execute(sql)
         rows = cur.fetchall()
         return rows
 

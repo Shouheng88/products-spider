@@ -33,8 +33,8 @@ class JDDiscount(object):
       item_count = item_count + len(goods_list)
       start_id = goods_list[len(goods_list)-1][GOODS_ID_ROW_INDEX]
       job_no = job_no + 1
-      logging.info('>>>> Crawling Discount: job[%d], starter[%d], [%d] items done. <<<<' % (job_no, start_id, item_count))
       self.__crawl_goods_discount(goods_list)
+      logging.info('>>>> Crawling Discount: job[%d], starter[%d], [%d] items done. <<<<' % (job_no, start_id, item_count))
       if self.total_failed_count > JD_DISCOUNT_MAX_FAILE_COUNT: # 每批次的任务结束之后就检测一下
         # 同时输出 start_id 便于下次从失败中恢复
         logging.error(">>>> Crawling Prices Job Stopped Due to Fatal Error: job[%d], starter[%d], [%d] items done. <<<<" % (job_no, start_id, item_count))
@@ -61,12 +61,16 @@ class JDDiscount(object):
         req = "http://cd.jd.com/promotion/v2?skuId=%s&area=12_904_3373_0&venderId=%s&cat=%s" % (
           goods_item[GOODS_SKU_ID_ROW_INDEX], goods_item[GOODS_VEN_ID_ROW_INDEX], cat)
         try:
-          resp_text = requests.get(req, headers=REQUEST_HEADERS).text
+          headers = REQUEST_HEADERS
+          resp_text = requests.get(req, headers=headers).text
           discount_obj = json.loads(resp_text)
           coupons = discount_obj.get('skuCoupon')
+          antiSpider = discount_obj.get('antiSpider')
           if coupons == None:
-            logging.error('Illegal response:\n %s\nfor request: %s' % (resp_text, req))
-            time.sleep(random.random()*CRAWL_SLEEP_TIME_SHORT) # 非法的返回结果，小憩一会儿
+            if antiSpider == True:
+              logging.error("Errir while request discount, invoked anit-spider. \nREQ:%s\nHEADERS:%s\nRESP:%s" % (req, headers, resp_text))
+              self.total_failed_count = self.total_failed_count + 1 # 错误次数+1，触发了爬虫的时候次数也加 1
+              time.sleep(CRAWL_SLEEP_TIME_LONG) # 触发了反爬虫，睡眠一定时间
             continue # 跳过
           for coupon in coupons:
             start_time = get_starter_timestamp_of_day(coupon.get('beginTime'))
