@@ -44,10 +44,12 @@ class JDPrices(object):
         if self.total_failed_count > JD_PRICE_MAX_FAILE_COUNT:
           # 同时输出 start_id 便于下次从失败中恢复
           logging.error(">>>> Crawling Prices Job Stopped Due to Fatal Error: job[%d], starter[%d], [%d] items done. <<<<" % (job_no, start_id, item_count))
+          send_email('京东价格爬虫【异常】报告', '[%d] jobs [%d] items done, starter: [%d]' % (job_no, item_count, start_id), config.log_filename)
           break
       # 休眠一定时间
       time.sleep(random.random() * CRAWL_SLEEP_TIME_INTERVAL)
     logging.info(">>>> Crawling Prices Job Finished: [%d] jobs [%d] items done. <<<<" % (job_no, item_count))
+    send_email('京东价格爬虫【完成】报告', '[%d] jobs [%d] items done' % (job_no, item_count))
 
   def __crawl_prices(self, goods_list):
     '''批量爬取商品的价格信息，主要用来查找商品的下架状态，如果下架了，就将其标记为下架'''

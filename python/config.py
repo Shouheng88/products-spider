@@ -140,14 +140,15 @@ class GlobalConfig(object):
     self.logAppendix = ''
     self.db = DBConfig()
     self.redis = RedisConfig()
+    self.log_filename = None
 
   def config_logging(self):
     """配置应用日志"""
     LOG_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
     DATE_FORMAT = "%m/%d/%Y %H:%M:%S %p"
-    filename = str(datetime.date.today()) + self.logAppendix + '.log'
-    logging.basicConfig(filename=filename, filemode='a', level=self.logLevel, format=LOG_FORMAT, datefmt=DATE_FORMAT)
-    logging.FileHandler(filename=filename, encoding='utf-8')
+    self.log_filename = str(datetime.date.today()) + self.logAppendix + '.log'
+    logging.basicConfig(filename=self.log_filename, filemode='a', level=self.logLevel, format=LOG_FORMAT, datefmt=DATE_FORMAT)
+    logging.FileHandler(filename=self.log_filename, encoding='utf-8')
 
   def set_env(self, env: str):
     """设置环境信息"""

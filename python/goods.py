@@ -45,9 +45,11 @@ class JDGoods(object):
       succeed = self.__crawl_jd_channel(channel) # 爬取某个品类的数据
       if not succeed:
         logging.warning(">>>> Crawling Channel Job Stopped Due to Fatal Error! [%d] channels done <<<<" % job_no)
+        send_email('京东商品爬虫【异常】报告', '[%d] channels done' % (job_no), config.log_filename)
         return
       db.mark_channel_as_done(channel) # 将指定的品类标记为完成
     logging.info(">>>> Crawling Channel Job Finished: [%d] channels done <<<<" % job_no)
+    send_email('京东商品爬虫【完成】报告', '[%d] channels done' % (job_no))
 
   def __crawl_jd_channel(self, channel):
     '''爬取指定的品类的所有的信息'''

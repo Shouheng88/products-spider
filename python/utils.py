@@ -2,6 +2,16 @@
 # -*- coding: utf-8 -*-
 
 import time, datetime
+import smtplib
+from email.header import Header
+from email import encoders
+from email.header import Header
+from email.mime.base import MIMEBase
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.utils import parseaddr, formataddr
+import traceback
+import logging
 
 def get_timestamp_of_today_start():
   """
@@ -47,3 +57,43 @@ def safeGetText(node, value):
       return value
     else:
       return ret
+
+def send_email(subject: str, message: str, filename = None):
+  from_ = "每日数据报告<***REMOVED***@qq.com>"
+  to_ = '亲爱的开发者<w_shouheng@163.com>'
+  receivers = ['w_shouheng@163.com']
+  msg = MIMEMultipart()
+  msg['From'] = _format_addr(from_) # 发送者
+  msg['To'] =  _format_addr(to_) # 接收者
+  msg['Subject'] = Header(subject, 'utf-8').encode()
+  msg.attach(MIMEText(message, 'plain', 'utf-8'))
+  if filename is not None:
+    with open(filename, 'rb') as f:
+      # 设置附件的MIME和文件名，这里是png类型:
+      mime = MIMEBase('text', 'txt', filename='error.log')
+      # 加上必要的头信息:
+      mime.add_header('Content-Disposition', 'attachment', filename='error.log')
+      mime.add_header('Content-ID', '<0>')
+      mime.add_header('X-Attachment-Id', '0')
+      # 把附件的内容读进来:
+      mime.set_payload(f.read())
+      # 用Base64编码:
+      encoders.encode_base64(mime)
+      # 添加到MIMEMultipart:
+      msg.attach(mime)
+  try:
+      smtpObj = smtplib.SMTP()
+      smtpObj.connect('smtp.qq.com')
+      smtpObj.login('***REMOVED***@qq.com', 'ffknbklvxzvncajd')
+      smtpObj.sendmail('***REMOVED***@qq.com', receivers, msg.as_string())
+      logging.info("Succeed to send email.")
+  except BaseException as e:
+      print("Failed to send email:\n%s" % traceback.format_exc())
+      logging.error("Failed to send email:\n%s" % traceback.format_exc())
+
+def _format_addr(s):
+    name, addr = parseaddr(s)
+    return formataddr((Header(name, 'utf-8').encode(), addr))
+
+if __name__ == "__main__":
+    send_email('京东价格爬虫【完成】报告', '[%d] jobs [%d] items done' % (1, 100))

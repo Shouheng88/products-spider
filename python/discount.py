@@ -38,10 +38,12 @@ class JDDiscount(object):
       if self.total_failed_count > JD_DISCOUNT_MAX_FAILE_COUNT: # 每批次的任务结束之后就检测一下
         # 同时输出 start_id 便于下次从失败中恢复
         logging.error(">>>> Crawling Prices Job Stopped Due to Fatal Error: job[%d], starter[%d], [%d] items done. <<<<" % (job_no, start_id, item_count))
+        send_email('京东折扣爬虫【异常】报告', '[%d] jobs [%d] items done, starter: [%d]' % (job_no, item_count, start_id), config.log_filename)
         break
       # 休眠一定时间，其实爬数据的时候是一批分别 http 请求的，所以大休一下拉
       time.sleep(random.random() * CRAWL_SLEEP_TIME_INTERVAL)
     logging.info(">>>> Crawling Discount Job Finished: [%d] jobs [%d] items done <<<<" % (job_no, item_count))
+    send_email('京东折扣爬虫【完成】报告', '[%d] jobs [%d] items done' % (job_no, item_count))
 
   def __crawl_goods_discount(self, goods_list):
     '''查询商品的折扣信息'''
