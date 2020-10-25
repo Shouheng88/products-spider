@@ -101,6 +101,15 @@ ua = UserAgent()
 def random_useragent():
   return ua.random
 
+# import socket
+# import socks
+# import requests
+
+# def test_socks():
+#   socks.set_default_proxy(socks.SOCKS5, "127.0.0.1", 9150) # Tor 端口 9150
+#   socket.socket = socks.socksocket
+#   a = requests.get("http://checkip.amazonaws.com").text
+#   print(a)
+
 if __name__ == "__main__":
-  ua = UserAgent()
-  print(ua.random)
+  test_socks()
