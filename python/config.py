@@ -21,6 +21,7 @@ JD_DETAIL_MAX_FAILE_COUNT         = 50  # 抓取京东详情页面的最大失�
 JD_PRICE_MAX_FAILE_COUNT          = 50  # 爬取价格的时候允许的最大的失败次数
 JD_DISCOUNT_MAX_FAILE_COUNT       = 50  # 爬取折扣的时候允许的最大的失败次数
 JD_MAX_SEARCH_PAGE                = 100    # 爬虫默认最大爬取的页数
+HISTORY_MAX_FAILE_COUNT           = 30  # 爬取历史价格的时候最大的失败次数
 # 时间配置
 CHANNEL_HANDLE_TIMEOUT_IN_MINUTE  = 2     # 分类处理的超时时间，超时完不成则认为失败
 GOODS_HANDLE_TIMEOUT_IN_MINUTE    = 2     # 产品超时时间，同上
@@ -29,6 +30,8 @@ PRICES_HANDLE_TIMEOUT_IN_MINUTE   = 2
 PRICES_HANDLE_PER_PAGE_SIZE       = 30
 DISCOUNT_HANDLE_PER_PAGE_SIZE     = 5
 PARAMETERS_HANDLE_PER_PAGE_SIZE   = 5
+PRICE_HISTORY_HANDLE_PER_PAGE_SIZE = 4
+PRICE_HISTORY_HANDLE_CHANNELS     = [500]
 
 # 分类的列索引
 CHANNEL_ID_ROW_INDEX            = 0
@@ -76,6 +79,7 @@ CMD_CRAWL_JD_GOODS              = 'crawl_jd_goods'
 CMD_CRAWL_JD_DETAIL             = 'crawl_jd_detail'
 CMD_CRAWL_JD_DISCOUNT           = 'crawl_jd_discount'
 CMD_CRAWL_JD_PRICES             = 'crawl_jd_prices'
+CMD_CRAWL_HISTORY               = 'crawl_hisotry'
 
 # 环境值常量
 ENV_LOCAL                       = 'local'
@@ -84,7 +88,7 @@ ENV_SERVER_LOCAL                = 'server_local'
 ENV_SERVER_REMOTE               = 'server_remote'
 
 # 请求头
-ALL_REQUEST_HEADERS = [
+_ALL_REQUEST_HEADERS = [
   # "Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10_6_8; en-us) AppleWebKit/534.50 (KHTML, like Gecko) Version/5.1 Safari/534.50",
     # "Mozilla/5.0 (Windows; U; Windows NT 6.1; en-us) AppleWebKit/534.50 (KHTML, like Gecko) Version/5.1 Safari/534.50",
     "Mozilla/5.0 (Windows NT 10.0; WOW64; rv:38.0) Gecko/20100101 Firefox/38.0",

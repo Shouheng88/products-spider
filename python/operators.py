@@ -522,6 +522,26 @@ class DBOperator(object):
         rows = cur.fetchall()
         return rows
 
+    def next_goods_page_of_channels(self, channel_id_list, page_size: int, start_id: int):
+        """
+        从商品列表中读取一页数据来查询商品的价格信息，这里查询到了数据之后就直接返回了，
+        处理数据的时候也不会进行加锁和标记.
+        """
+        channel_ids_str = []
+        for channel_id in channel_id_list:
+            channel_ids_str.append(str(channel_id))
+        channel_ids = ','.join(channel_ids_str)
+        sql = ("SELECT * FROM gt_item WHERE \
+            price != -1 \
+            AND channel_id in (%s) \
+            AND id > %s \
+            ORDER BY id LIMIT %s") % (channel_ids, start_id, page_size)
+        con = self.connect_db()
+        cur = con.cursor()
+        cur.execute(sql)
+        rows = cur.fetchall()
+        return rows
+
     def update_goods_list_as_sold_out(self, goods_list):
         '''将指定的产品列表标记为下架状态'''
         succeed = True
@@ -637,8 +657,23 @@ class RedisOperator(object):
         for row in rows:
             goods_id = row[GOODS_ID_ROW_INDEX]
             price = row[GOODS_PRICE_ROW_INDEX]
-            key = GOODS_PRICE_HISTORY_REDIS_KEY_PATTERN % goods_id
-            self.r.hset(key, str(today), price)
+            name = GOODS_PRICE_HISTORY_REDIS_KEY_PATTERN % goods_id
+            self.r.hset(name, str(today), price)
+
+    def add_prices(self, goods_item, price_map):
+
+        '''
+        添加历史价格
+        添加历史价格，不过有个问题，这里价格是统计了折扣之后的结果，所以可能有问题，
+        这里计算出来的价格也就当作一个补充吧，即项目正式开启爬虫之前进行的数据抓取
+        '''
+        goods_id = goods_item[GOODS_ID_ROW_INDEX]
+        name = GOODS_PRICE_HISTORY_REDIS_KEY_PATTERN % goods_id
+        self.connect_redis()
+        for d,p in price_map.items():
+            price = self.r.hget(name, str(d))
+            if price == None:
+                self.r.hset(name, str(d), p)
 
     def connect_redis(self):
         '''连接 Redis'''

@@ -9,6 +9,7 @@ from details import *
 from prices import *
 from config import *
 from discount import *
+from mmb import *
 
 command_info = "\
 Options: \n\
@@ -20,6 +21,7 @@ Options: \n\
         %s         : Crawl jingdong item detail\n\
         %s       : Crawl jingdong item discount\n\
         %s         : Crawl jingdong item prices from batch api, used to detect item sold out\n\
+        %s      : Crawl price hisotry\m\
     -e[--env]                   Environment\n\
         %s                   : Local develop\n\
         %s                    : Test server\n\
@@ -28,7 +30,7 @@ Options: \n\
     -a[--arg]                   Argument, specify an argument for given command. For example,\n\
                                 started id for prices and discount crawl job.\n\
     " % (CMD_WRITE_JD_CATEGORY, CMD_CRAWL_JD_CATEGORY, CMD_CRAWL_JD_GOODS, \
-        CMD_CRAWL_JD_DETAIL, CMD_CRAWL_JD_DISCOUNT, CMD_CRAWL_JD_PRICES, \
+        CMD_CRAWL_JD_DETAIL, CMD_CRAWL_JD_DISCOUNT, CMD_CRAWL_JD_PRICES, CMD_CRAWL_HISTORY,\
         ENV_LOCAL, ENV_TEST, ENV_SERVER_LOCAL, ENV_SERVER_REMOTE)
 
 def main(argv):
@@ -85,10 +87,14 @@ def main(argv):
                 jd.crawl(param)
                 pass
             elif arg == CMD_CRAWL_JD_PRICES: # 爬取京东每个产品的价格信息
-                print('Start to crawling JD prices, starter[%s] ...' % param)
+                print('Start to crawl JD prices, starter[%s] ...' % param)
                 jd = JDPrices()
                 jd.crawl(param)
                 pass
+            elif arg == CMD_CRAWL_HISTORY:
+                print('Start to crawl price histories, starter[%s] ...' % param)
+                mmb = ManmanBuy()
+                mmb.crawl()
             else:
                  __show_invalid_command()
         else:
