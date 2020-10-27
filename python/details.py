@@ -61,7 +61,7 @@ class JDDetails(object):
   def __crawl_from_page(self, goods_item):
     '''从商品的详情信息页面中提取商品的详情信息'''
     goods_link = 'https:' + goods_item[GOODS_LINK_ROW_INDEX]
-    html = requests.get(goods_link, headers=REQUEST_HEADERS).text
+    html = requests.get(goods_link, headers=get_request_headers()).text
     soup = BeautifulSoup(html, "html.parser")
     goods_params = GoodsParams()
     # 解析产品参数信息

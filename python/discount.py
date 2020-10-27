@@ -27,7 +27,7 @@ class JDDiscount(object):
       except BaseException as e:
         logging.error("Faile to get number from param: %s" % start_id_)
     while True:
-      goods_list = db.next_goods_page(SOURCE_JINGDONG, DISCOUNT_HANDLE_PER_PAGE_SIZE, start_id) # 拉取一页数据
+      goods_list = db.next_goods_page_for_icons(SOURCE_JINGDONG, DISCOUNT_FILTER_LIKES, DISCOUNT_HANDLE_PER_PAGE_SIZE, start_id) # 拉取一页数据
       if len(goods_list) == 0: # 表示可能是数据加锁的时候失败了
         break
       item_count = item_count + len(goods_list)
@@ -63,7 +63,7 @@ class JDDiscount(object):
         req = "http://cd.jd.com/promotion/v2?skuId=%s&area=%s&venderId=%s&cat=%s" % (
           goods_item[GOODS_SKU_ID_ROW_INDEX], DISCOUNT_AREA, goods_item[GOODS_VEN_ID_ROW_INDEX], cat)
         try:
-          headers = REQUEST_HEADERS
+          headers = get_request_headers()
           resp_text = requests.get(req, headers=headers).text
           discount_obj = json.loads(resp_text)
           coupons = discount_obj.get('skuCoupon')

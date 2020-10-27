@@ -69,7 +69,7 @@ class ManmanBuy(object):
     '''请求 api'''
     url = 'http://tool.manmanbuy.com/history.aspx?DA=1&action=gethistory&url=%s&bjid=&spbh=&cxid=&zkid=&w=350&token=%s' % (link, self.token)
     req_map['REQ'] = url
-    ret = requests.get(url, headers=REQUEST_HEADERS).text
+    ret = requests.get(url, headers=get_request_headers()).text
     return json.loads(ret)
 
   def test(self):

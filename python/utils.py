@@ -12,12 +12,13 @@ from email.mime.multipart import MIMEMultipart
 from email.utils import parseaddr, formataddr
 import traceback
 import logging
+import random
 from fake_useragent import UserAgent
 
+from useragent import *
+
 def get_timestamp_of_today_start():
-  """
-  获取今天的开始时间的时间戳，就是当前的 0 时 0 分 0 秒的时间，返回的时间戳单位为毫秒
-  """
+  """获取今天的开始时间的时间戳，就是当前的 0 时 0 分 0 秒的时间，返回的时间戳单位为毫秒"""
   str_today = str(datetime.date.today())
   str_today_start = str_today + " 0:0:0"
   return int(time.mktime(time.strptime(str_today_start, "%Y-%m-%d %H:%M:%S")))
@@ -60,6 +61,7 @@ def safeGetText(node, value):
       return ret
 
 def send_email(subject: str, message: str, filename = None):
+  '''向开发者邮箱发送邮件'''
   from_ = "每日数据报告<***REMOVED***@qq.com>"
   to_ = '亲爱的开发者<w_shouheng@163.com>'
   receivers = ['w_shouheng@163.com']
@@ -98,8 +100,15 @@ def _format_addr(s):
 
 ua = UserAgent()
 
-def random_useragent():
+def random_fake_useragent():
+  '''基于 fake-useragent 来获取一个随机的 ua，但是这个随机的 ua 有一定的可能是非法的，
+  所以这个方法的返回结果是不可以直接使用的，可以多次请求来从该方法的返回结果中筛选出合法
+  的 ua，然后再从合法的 ua 中随机选择 ua 作为请求的最终 ua'''
   return ua.random
+
+def random_useragent():
+  '''从自己维护的 useragent 列表中返回可用的 useragent'''
+  return random.choice(USER_AGENTS)
 
 # import socket
 # import socks

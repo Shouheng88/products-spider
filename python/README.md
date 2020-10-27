@@ -1,6 +1,8 @@
 
-# Environment Requirement
+# 基本环境配置
 
+- requests:
+  - install: `pip install requests`
 - BeautifulSoup
     install : `pip install beautifulsoup4`
 - Redis
@@ -16,7 +18,9 @@
 - pymysql:
     install : `pip install pymysql`
 - fake-useragent，用来模拟 useragent
-    install : `pip install fake-useragent`，不过第一次使用的时候需要连接外网从一个网址里获取一些信息
+    install : `pip install fake-useragent`
+- pip 超时问题：
+  - 使用 pip 的时候增加参数以指定镜像地址，如 `pip install redis -i https://pypi.douban.com/simple`
 
 ## tor
 

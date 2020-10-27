@@ -106,9 +106,12 @@ def __show_invalid_command():
 
 def __config_environment(env: str, cmd: str):
     """配置日志"""
-    # 为日志增加尾缀，以区分各个指令的日志，便于排查问题
-    if env == 'local' or env == 'test':
+    # 配置日志级别
+    if env == ENV_LOCAL or env == ENV_TEST:
         config.logLevel = logging.DEBUG
+    elif env == ENV_SERVER_LOCAL or env == ENV_SERVER_REMOTE:
+        config.logLevel = logging.INFO
+    # 区分日志文件
     if cmd == CMD_WRITE_JD_CATEGORY or cmd == CMD_CRAWL_JD_CATEGORY:
         config.logAppendix = '-category'
     elif cmd == CMD_CRAWL_JD_GOODS:

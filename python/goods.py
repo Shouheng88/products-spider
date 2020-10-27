@@ -85,7 +85,8 @@ class JDGoods(object):
     '''京东商品列表信息抓取，最大的页码、产品详情等基础信息'''
     channel_id = channel[CHANNEL_ID_ROW_INDEX]
     channel_name = channel[CHANNEL_NAME_ROW_INDEX]
-    html = requests.get(page_url, headers=REQUEST_HEADERS).text
+    headers = get_request_headers()
+    html = requests.get(page_url, headers=headers).text
     soup = BeautifulSoup(html, "html.parser")
     (succeed1, max_page) = self.__crawl_jd_max_page(soup)
     (succeed2, goods_list) = self.__crawl_jd_goods_list(soup)
@@ -105,6 +106,8 @@ class JDGoods(object):
       succeed5 = db.batch_insert_or_update_goods(goods_list)
       # 然后将价格历史记录到 Redis 中，Redis 的操作应该放在 DB 之后，因为我们要用到数据库记录的主键
       redis.add_goods_price_histories(goods_list)
+    else:
+      logging.error("ILLEGAL UA:%s" % headers.get("User-Agent"))
     if succeed3 and first_page:
       # 对于每个品类，只在爬取第一页的时候更新品牌信息，减少服务器压力
       db.batch_insert_or_update_brands(brand_list)
@@ -217,7 +220,7 @@ class JDGoods(object):
         url = "https://club.jd.com/comment/productCommentSummaries.action?referenceIds=" + sku_ids
         try:
           # 进行请求，多次重试之后失败了就睡眠一会儿，然后进行重试
-          json_comments = requests.get(url, headers=REQUEST_HEADERS).text
+          json_comments = requests.get(url, headers=get_request_headers()).text
         except BaseException as e:
           logging.error("Error while requesting comments:\n%s" % traceback.format_exc())
           logging.error("Error while requesting comments:\n%s" % url)

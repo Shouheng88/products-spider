@@ -70,7 +70,7 @@ class JDPrices(object):
       skuid = goods_list[idx][GOODS_SKU_ID_ROW_INDEX]
       skuid_list.append(str(skuid))
     sku_ids = ','.join(skuid_list)  
-    prices_json = requests.get("http://p.3.cn/prices/mgets?skuIds=" + sku_ids, headers=REQUEST_HEADERS).text
+    prices_json = requests.get("http://p.3.cn/prices/mgets?skuIds=" + sku_ids, headers=get_request_headers()).text
     prices = json.loads(prices_json)
     soldout_list = [] # 已下架的商品列表
     for idx in range(0, len(prices)):
