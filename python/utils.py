@@ -85,8 +85,10 @@ def send_email(subject: str, message: str, filename = None):
       # 添加到MIMEMultipart:
       msg.attach(mime)
   try:
-    smtpObj = smtplib.SMTP()
-    smtpObj.connect('smtp.qq.com')
+    smtpObj = smtplib.SMTP_SSL('smtp.qq.com')
+    #smtpObj.connect('smtp.qq.com')
+    #smtpObj.ehlo()
+    #smtpObj.starttls()
     smtpObj.login('***REMOVED***@qq.com', 'ffknbklvxzvncajd')
     smtpObj.sendmail('***REMOVED***@qq.com', receivers, msg.as_string())
     logging.info("Succeed to send email.")
@@ -122,4 +124,4 @@ def random_useragent():
 
 if __name__ == "__main__":
   # test_socks()
-  pass
+  send_email('京东价格爬虫【完成】报告', '[%d] jobs [%d] items done' % (0, 0))
