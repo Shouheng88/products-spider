@@ -31,7 +31,7 @@ PRICES_HANDLE_PER_PAGE_SIZE       = 30
 DISCOUNT_HANDLE_PER_PAGE_SIZE     = 5
 PARAMETERS_HANDLE_PER_PAGE_SIZE   = 5
 PRICE_HISTORY_HANDLE_PER_PAGE_SIZE = 4
-PRICE_HISTORY_HANDLE_CHANNELS     = [500]
+PRICE_HISTORY_HANDLE_CHANNELS     = [68]
 
 # 分类的列索引
 CHANNEL_ID_ROW_INDEX            = 0
@@ -79,7 +79,7 @@ CMD_CRAWL_JD_GOODS              = 'crawl_jd_goods'
 CMD_CRAWL_JD_DETAIL             = 'crawl_jd_detail'
 CMD_CRAWL_JD_DISCOUNT           = 'crawl_jd_discount'
 CMD_CRAWL_JD_PRICES             = 'crawl_jd_prices'
-CMD_CRAWL_HISTORY               = 'crawl_hisotry'
+CMD_CRAWL_HISTORY               = 'crawl_history'
 
 # 环境值常量
 ENV_LOCAL                       = 'local'

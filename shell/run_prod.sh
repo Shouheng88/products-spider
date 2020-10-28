@@ -22,7 +22,7 @@ usage () {
   echo "          crawl_jd_detail    : 爬取京东商品详情"
   echo "          crawl_jd_discount  : 爬取京东折扣信息"
   echo "          crawl_jd_prices    : 爬取京东价格数据"
-  echo "          crawl_hisotry      : 爬取历史价格信息"
+  echo "          crawl_history      : 爬取历史价格信息"
   echo "params  : 个别 python 命令的附加参数"
 }
 # 开始
