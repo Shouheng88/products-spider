@@ -16,27 +16,40 @@ from config import *
 from operators import dBOperator as db
 from channels import *
 
-class Channel(object):
-  def __init__(self):
-    super().__init__()
-    self.id = None
-    self.name = None
-    self.parent_id = None 
-    self.cat = None
-    self.treepath = None
-    self.jdurl = None
-    self.tburl = None
-    self.max_page_count = None
-    self.handling_time = None
-    self.display_order= None
-    self.remark = None
-    self.lock_version = None
-    self.updated_time = None
-    self.created_time = None
-
 class ChannelOperator(object):
   def __init__(self):
     super().__init__()
+
+  def write_channel(self, category: Category):
+    '''将各个分类数据写入到数据库种'''
+    con = self.connect_db()
+    cur = con.cursor()
+    row_id = -1
+    try:
+      # 先插入到数据库中，获取到记录的 id 之后再更新记录的 treepath 字段
+      sql = "INSERT INTO gt_channel (\
+        name, treepath, parent_id, cat, jdurl, tburl, max_page_count, \
+        handling_time, display_order, lock_version, updated_time, created_time\
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, 0, %s, 0, 0, unix_timestamp(now()))"
+      # 将处理时间默和最后更新 (完成时间) 默认设置为 0
+      val = (category.name, category.treepath, category.parent_id, category.cat,
+        category.jdurl, category.tburl, category.max_page_count, category.display_order)
+      cur.execute(sql, val)
+      row_id = cur.lastrowid
+      # 再更新数据的 treepath 字段
+      if len(category.treepath) == 0:
+        category.treepath = str(row_id)
+      else:
+        category.treepath = category.treepath + "|" + str(row_id)
+      cur.execute("UPDATE gt_channel SET treepath = %s WHERE id = %s", (category.treepath, row_id))
+      con.commit()
+    except Exception as e:
+      con.rollback()
+      logging.exception('Insert Operation Error :\n %s' % traceback.format_exc())
+    finally:
+      cur.close()
+      con.close()
+    return row_id
 
   def next_channel_to_handle(self) -> Channel:
     '''

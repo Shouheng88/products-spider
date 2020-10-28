@@ -152,6 +152,24 @@ class Category(object):
   def __str__(self):
       return ' ' + self.name + ' ' + self.cat + ' ' + str(self.children)
 
+class Channel(object):
+  def __init__(self):
+    super().__init__()
+    self.id = None
+    self.name = None
+    self.parent_id = None 
+    self.cat = None
+    self.treepath = None
+    self.jdurl = None
+    self.tburl = None
+    self.max_page_count = None
+    self.handling_time = None
+    self.display_order= None
+    self.remark = None
+    self.lock_version = None
+    self.updated_time = None
+    self.created_time = None
+
 class Discount(object):
   '''商品的折扣信息'''
   def __init__(self, goods_id, batch_id, quota, discount, start_time, end_time):

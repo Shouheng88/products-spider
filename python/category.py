@@ -10,6 +10,7 @@ from models import Category
 from operators import ExcelOperator as ExcelOperator
 from operators import dBOperator as db
 from config import *
+from channels import *
 
 class JDCategory(object):
     '''京东分类信息管理类'''
@@ -74,7 +75,7 @@ class JDCategory(object):
             s_channel.children[tc_name] = t_channel
         # 写入 DB
         for c_name, c_channel in dist.items(): # 一级品类遍历
-            p_id = db.write_channel(c_channel)
+            p_id = co.write_channel(c_channel)
             if p_id == -1:
                 logging.error("INSERT INTO DB ERROR!!!!!!")
                 break
@@ -82,7 +83,7 @@ class JDCategory(object):
                 s_channel.parent_id = p_id
                 s_channel.treepath = c_channel.treepath # 子分类先继承父分类的 treepath
                 s_channel.jdurl = s_channel.link
-                sp_id = db.write_channel(s_channel)
+                sp_id = co.write_channel(s_channel)
                 if sp_id == -1:
                     logging.error("INSERT INTO DB ERROR!!!!!!")
                     break
@@ -90,7 +91,7 @@ class JDCategory(object):
                     t_channel.parent_id = sp_id
                     t_channel.treepath = s_channel.treepath
                     t_channel.jdurl = t_channel.link
-                    tp_id = db.write_channel(t_channel)
+                    tp_id = co.write_channel(t_channel)
                     if tp_id == -1:
                         logging.error("INSERT INTO DB ERROR!!!!!!")
                         break

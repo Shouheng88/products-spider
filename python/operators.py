@@ -256,37 +256,6 @@ class DBOperator(object):
             con.close()
         return succeed
 
-    def write_channel(self, category):
-        '''将各个分类数据写入到数据库种'''
-        con = self.connect_db()
-        cur = con.cursor()
-        row_id = -1
-        try:
-            # 先插入到数据库中，获取到记录的 id 之后再更新记录的 treepath 字段
-            sql = "INSERT INTO gt_channel (\
-                name, treepath, parent_id, cat, jdurl, tburl, max_page_count, \
-                handling_time, display_order, lock_version, updated_time, created_time\
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, 0, %s, 0, 0, unix_timestamp(now()))"
-            # 将处理时间默和最后更新 (完成时间) 默认设置为 0
-            val = (category.name, category.treepath, category.parent_id, category.cat,
-                category.jdurl, category.tburl, category.max_page_count, category.display_order)
-            cur.execute(sql, val)
-            row_id = cur.lastrowid
-            # 再更新数据的 treepath 字段
-            if len(category.treepath) == 0:
-                category.treepath = str(row_id)
-            else:
-                category.treepath = category.treepath + "|" + str(row_id)
-            cur.execute("UPDATE gt_channel SET treepath = %s WHERE id = %s", (category.treepath, row_id))
-            con.commit()
-        except Exception as e:
-            con.rollback()
-            logging.exception('Insert Operation Error :\n %s' % traceback.format_exc())
-        finally:
-            cur.close()
-            con.close()
-        return row_id
-
     def next_page_to_handle_prameters(self, source: int, page_size: int, start_id: int, type_index, group_count):
         '''从商品列表中取出下一个需要解析的商品，设计的逻辑参考品类爬取相关的逻辑'''
         # 查询的时候增加 parameters 条件，也即只有当参数为空的时候才爬取，每个产品只爬取一次
