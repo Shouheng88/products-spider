@@ -12,6 +12,7 @@ class Analyser(object):
     super().__init__()
     self.counts = {}
     self.p_map = {}
+    self.page_size = 200
 
   def analyze_name(self):
     '''对产品的名称进行分词统计分析，似乎名称里面并没有特别有值得分析的词汇'''
@@ -19,7 +20,7 @@ class Analyser(object):
     start_id = 30000
     while True:
       # 不对各个品类的频率进行细化统计
-      goods_list = db.next_goods_page_without_source(GOODS_ANALYSE_PER_PAGE_SIZE, start_id)
+      goods_list = db.next_goods_page_without_source(self.page_size, start_id)
       if len(goods_list) == 0:
         break
       item_count = item_count+len(goods_list)
@@ -49,7 +50,7 @@ class Analyser(object):
     job_no = start_id = item_count = 0
     while True:
       # 不对各个品类的频率进行细化统计
-      goods_list = db.next_goods_page_without_source(GOODS_ANALYSE_PER_PAGE_SIZE, start_id)
+      goods_list = db.next_goods_page_without_source(self.page_size, start_id)
       if len(goods_list) == 0:
         break
       item_count = item_count+len(goods_list)

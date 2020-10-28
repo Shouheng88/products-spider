@@ -19,19 +19,20 @@ class JDDiscount(object):
     super().__init__()
     self.max_faile_count = 30
     self.total_failed_count = 0
+    self.per_page_size = 5
+    self.group_count = 4 # 要将全部的折扣数据分成多少组，生产约 1w 折扣商品需要爬取，每批次约 2500 条数据需要爬取
   
   def crawl(self, start_id_ = None):
     '''查询产品的折扣信息'''
     job_no = start_id = item_count = 0
-    group_count = 4 # 要将全部的折扣数据分成多少组，生产约 1w 折扣商品需要爬取，每批次约 2500 条数据需要爬取
-    type_index = int(redis.get_jd_type_index('discount')) % group_count # 折扣的自增 index
+    type_index = int(redis.get_jd_type_index('discount')) % self.group_count # 折扣的自增 index
     if start_id_ != None:
       try:
         start_id = int(start_id_)
       except BaseException as e:
         logging.error("Faile to get number from param: %s" % start_id_)
     while True:
-      goods_list = db.next_goods_page_for_icons(SOURCE_JINGDONG, ('-', '减', '券'), 20, start_id, type_index, group_count) # 拉取一页数据
+      goods_list = db.next_goods_page_for_icons(SOURCE_JINGDONG, ('-', '减', '券'), self.per_page_size, start_id, type_index, self.group_count) # 拉取一页数据
       if len(goods_list) == 0: # 表示可能是数据加锁的时候失败了
         break
       item_count = item_count + len(goods_list)

@@ -21,17 +21,18 @@ class JDDetails(object):
   两个可以同时放在一起来完成，这样更符合真实的应用请求的效果。'''
   def __init__(self):
     super().__init__()
+    self.page_size = 6
     self.max_faile_count = 30
     self.total_failed_count = 0
+    self.group_count = 50 # 将所有的产品分成 30 组，每天爬取 1 组，大概 2000 条
     # self.ua = []
 
   def crawl(self):
     '''爬取商品的详情信息，设计的逻辑同商品的列表页面'''
     job_no = start_id = item_count = 0
-    group_count = 50 # 将所有的产品分成 30 组，每天爬取 1 组，大概 2000 条
-    type_index = int(redis.get_jd_type_index('details')) % group_count
+    type_index = int(redis.get_jd_type_index('details')) % self.group_count
     while True:
-      goods_list = db.next_page_to_handle_prameters(SOURCE_JINGDONG, 10, start_id, type_index, group_count)
+      goods_list = db.next_page_to_handle_prameters(SOURCE_JINGDONG, self.page_size, start_id, type_index, self.group_count)
       if len(goods_list) == 0: # 表示没有需要爬取参数的任务了
         break
       item_count = item_count + len(goods_list)

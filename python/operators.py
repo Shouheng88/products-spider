@@ -686,7 +686,6 @@ class RedisOperator(object):
             self.r.hset(name, str(today), price)
 
     def add_prices(self, goods_item, price_map):
-
         '''
         添加历史价格
         添加历史价格，不过有个问题，这里价格是统计了折扣之后的结果，所以可能有问题，

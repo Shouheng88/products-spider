@@ -17,6 +17,8 @@ class JDPrices(object):
   '''京东的商品价格查询，价格查询分为独立的任务进行'''
   def __init__(self):
     super().__init__()
+    self.page_size = 30
+    self.max_fail_count = 50
     self.total_failed_count = 0
 
   def crawl(self, start_id_ = None):
@@ -31,7 +33,7 @@ class JDPrices(object):
       except BaseException as e:
         logging.error("Faile to get number from param: %s" % start_id_)
     while True:
-      goods_list = db.next_goods_page(SOURCE_JINGDONG, PRICES_HANDLE_PER_PAGE_SIZE, start_id)
+      goods_list = db.next_goods_page(SOURCE_JINGDONG, self.page_size, start_id)
       if len(goods_list) == 0: # 表示可能是数据加锁的时候失败了
         break
       item_count = item_count + len(goods_list)
@@ -41,7 +43,7 @@ class JDPrices(object):
       succeed = self.__crawl_prices(goods_list)
       if not succeed:
         self.total_failed_count = self.total_failed_count + 1
-        if self.total_failed_count > JD_PRICE_MAX_FAILE_COUNT:
+        if self.total_failed_count > self.max_fail_count:
           # 同时输出 start_id 便于下次从失败中恢复
           logging.error(">>>> Crawling Prices Job Stopped Due to Fatal Error: job[%d], starter[%d], [%d] items done. <<<<" % (job_no, start_id, item_count))
           send_email('京东价格爬虫【异常】报告', '[%d] jobs [%d] items done, starter: [%d]' % (job_no, item_count, start_id), config.log_filename)

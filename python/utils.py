@@ -63,8 +63,8 @@ def safeGetText(node, value):
 def send_email(subject: str, message: str, filename = None):
   '''向开发者邮箱发送邮件'''
   from_ = "每日数据报告<***REMOVED***@qq.com>"
-  to_ = '亲爱的开发者<w_shouheng@163.com>'
-  receivers = ['w_shouheng@163.com']
+  to_ = '亲爱的开发者<shouheng2015@gmail.com>'
+  receivers = ['shouheng2015@gmail.com']
   msg = MIMEMultipart()
   msg['From'] = _format_addr(from_) # 发送者
   msg['To'] =  _format_addr(to_) # 接收者

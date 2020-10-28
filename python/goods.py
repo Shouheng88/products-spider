@@ -25,6 +25,9 @@ class JDGoods(object):
   '''京东商品信息爬取。这个类主要用来从商品列表中抓取商品的价格等基础信息（不包含商品的具体的参数信息）'''
   def __init__(self):
     super().__init__()
+    self.max_page = 100 # 爬取的最大页数
+    self.max_retry_count = 3 # 京东爬虫爬取评论的最大重试次数
+    self.max_fail_count = 30 # 京东爬取数据的时候最大的失败次数，达到了这个数字之后认定为存在严重的问题，需要停止程序
     self.total_failed_count = 0
 
   def crawl(self):
@@ -59,7 +62,7 @@ class JDGoods(object):
     channel_max_page = channel[CHANNEL_MAXPAGE_ROW_INDEX]
     # 抓取分类的信息，也就是第一页的信息
     (succeed, max_page) = self.__crawl_jd_page(channel_url, channel, True)
-    max_page = min(max_page, JD_MAX_SEARCH_PAGE, channel_max_page)
+    max_page = min(max_page, self.max_page, channel_max_page)
     page_count = 1 # 已经抓取的页数
     for page_num in range(1, max_page):
       page_url = self.__get_page_url_of_page_number(channel_url, page_num)
@@ -70,7 +73,7 @@ class JDGoods(object):
       else:
         self.total_failed_count = self.total_failed_count + 1
         logging.error(">>>> Failed to Scrawl Channel [%s] [%d]/[%d] <<<<" % (channel_name, page_count, max_page))
-        if self.total_failed_count > JD_PAGE_MAX_FAIL_COUNT:
+        if self.total_failed_count > self.max_fail_count:
           # 在这里进行监听，如果达到了最大从失败次数，就返回 False
           return False
       # 休眠一定时间
@@ -117,7 +120,7 @@ class JDGoods(object):
     '''解析京东的最大页数'''
     # 解析最大页码
     succeed = True
-    max_page = JD_MAX_SEARCH_PAGE
+    max_page = self.max_page
     try:
       pageText = soup.find(id="J_topPage").find("span").text
       index = pageText.find("/")
@@ -215,7 +218,7 @@ class JDGoods(object):
     if len(sku_ids) != 0:
       # 请求评论信息
       json_comments = None
-      while tried_count < JD_COMMENT_MAX_TRAY_COUNT and json_comments == None:
+      while tried_count < self.max_retry_count and json_comments == None:
         tried_count = tried_count + 1
         url = "https://club.jd.com/comment/productCommentSummaries.action?referenceIds=" + sku_ids
         try:

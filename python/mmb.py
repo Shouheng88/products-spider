@@ -15,6 +15,8 @@ class ManmanBuy(object):
   def __init__(self):
     super().__init__()
     self.token = 'm9if2229dad9f89afe1cfaf6213e63029540uqbcaeopxr'
+    self.page_size = 4
+    self.max_fail_count = 30
     self.total_failed_count = 0
 
   def crawl(self, start_id_=None):
@@ -26,7 +28,7 @@ class ManmanBuy(object):
       except BaseException as e:
         logging.error("Faile to get number from param: %s" % start_id_)
     while True:
-      goods_list = db.next_goods_page_of_channels(PRICE_HISTORY_HANDLE_CHANNELS, PRICE_HISTORY_HANDLE_PER_PAGE_SIZE, start_id) # 拉取一页数据
+      goods_list = db.next_goods_page_of_channels(PRICE_HISTORY_HANDLE_CHANNELS, self.page_size, start_id) # 拉取一页数据
       if len(goods_list) == 0: # 表示可能是数据加锁的时候失败了
         break
       item_count = item_count + len(goods_list)
@@ -34,7 +36,7 @@ class ManmanBuy(object):
       job_no = job_no + 1
       self._crawl_goods(goods_list)
       logging.info('>>>> Crawling Price History: job[%d], starter[%d], [%d] items done. <<<<' % (job_no, start_id, item_count))
-      if self.total_failed_count > HISTORY_MAX_FAILE_COUNT: # 每批次的任务结束之后就检测一下
+      if self.total_failed_count > self.max_fail_count: # 每批次的任务结束之后就检测一下
         # 同时输出 start_id 便于下次从失败中恢复
         logging.error(">>>> Crawling Price History Job Stopped Due to Fatal Error: job[%d], starter[%d], [%d] items done. <<<<" % (job_no, start_id, item_count))
         send_email('历史价格爬虫【异常】报告', '[%d] jobs [%d] items done, starter: [%d]' % (job_no, item_count, start_id), config.log_filename)
