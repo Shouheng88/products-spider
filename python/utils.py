@@ -112,6 +112,9 @@ def random_useragent():
   '''从自己维护的 useragent 列表中返回可用的 useragent'''
   return random.choice(USER_AGENTS)
 
+def random_jd_detail_ua():
+  return random.choice(DETAIL_USER_AGENTS)
+
 # import socket
 # import socks
 # import requests

@@ -469,19 +469,18 @@ class DBOperator(object):
             con.close()
         return row_id
 
-    def next_page_to_handle_prameters(self, source: int, page_size: int, start_id: int):
+    def next_page_to_handle_prameters(self, source: int, page_size: int, start_id: int, type_index, group_count):
         '''从商品列表中取出下一个需要解析的商品，设计的逻辑参考品类爬取相关的逻辑'''
-        handling_before = get_current_timestamp() - get_seconds_of_minutes(GOODS_HANDLE_TIMEOUT_IN_MINUTE)
         # 查询的时候增加 parameters 条件，也即只有当参数为空的时候才爬取，每个产品只爬取一次
         sql = ("SELECT * FROM gt_item WHERE \
-            handling_time < %s and \
             parameters is null and \
             store is null and \
             brand is null and \
             price != -1 and \
             id > %s and \
+            id %% %s = %s and \
             source = %s \
-            ORDER BY id LIMIt %s") % (handling_before, start_id, source, page_size) # 每次取出来 5 个数据吧
+            ORDER BY id LIMIt %s") % (start_id, group_count, type_index, source, page_size) # 每次取出来 5 个数据吧
         con = self.connect_db()
         cur = con.cursor()
         rows = None

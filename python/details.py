@@ -9,6 +9,7 @@ import random
 from bs4 import BeautifulSoup
 import traceback
 
+from operators import redisOperator as redis
 from operators import dBOperator as db
 from models import *
 from utils import *
@@ -20,48 +21,58 @@ class JDDetails(object):
   两个可以同时放在一起来完成，这样更符合真实的应用请求的效果。'''
   def __init__(self):
     super().__init__()
+    self.max_faile_count = 30
     self.total_failed_count = 0
+    # self.ua = []
 
   def crawl(self):
     '''爬取商品的详情信息，设计的逻辑同商品的列表页面'''
     job_no = start_id = item_count = 0
+    group_count = 50 # 将所有的产品分成 30 组，每天爬取 1 组，大概 2000 条
+    type_index = int(redis.get_jd_type_index('details')) % group_count
     while True:
-      goods_list = db.next_page_to_handle_prameters(SOURCE_JINGDONG, PARAMETERS_HANDLE_PER_PAGE_SIZE, start_id)
+      goods_list = db.next_page_to_handle_prameters(SOURCE_JINGDONG, 10, start_id, type_index, group_count)
       if len(goods_list) == 0: # 表示没有需要爬取参数的任务了
         break
       item_count = item_count + len(goods_list)
       start_id = goods_list[len(goods_list)-1][GOODS_ID_ROW_INDEX]
       job_no = job_no + 1
-      logging.info(">>>> Crawling Goods Details: job[%d], starter[%d], [%d] items done. <<<<" % (job_no, start_id, item_count))
+      logging.info(">>>> Crawling Goods Details: job[%d], starter[%d], index[%d], [%d] items done. <<<<" % (job_no, start_id, type_index, item_count))
       succeed = self.__crawl_goods_items(goods_list) # 爬取某个商品的条目
       if not succeed:
-        logging.error(">>>> Crawling Goods Details Stopped Due to Fatal Error: job[%d], starter[%d], [%d] items done. <<<<" % (job_no, start_id, item_count))
-        send_email('京东详情爬虫【异常】报告', '[%d] jobs [%d] items done, starter: [%d]' % (job_no, item_count, start_id), config.log_filename)
+        logging.error(">>>> Crawling Goods Details Stopped Due to Fatal Error: job[%d], starter[%d], index[%d], [%d] items done. <<<<" % (job_no, start_id, type_index, item_count))
+        send_email('京东详情爬虫【异常】报告', '[%d] jobs [%d] items done, starter [%d], index [%d]' % (job_no, item_count, start_id, type_index), config.log_filename)
         return
       time.sleep(random.random() * CRAWL_SLEEP_TIME_INTERVAL) # 休眠一定时间
-    logging.info(">>>> Crawling Details Job Finished: [%d] jobs, [%d] items done. <<<" % (job_no, item_count))
-    send_email('京东详情爬虫【完成】报告', '[%d] jobs [%d] items done' % (job_no, item_count))
+    logging.info(">>>> Crawling Details Job Finished: [%d] jobs, [%d] items done, index [%d]. <<<" % (job_no, item_count, type_index))
+    send_email('京东详情爬虫【完成】报告', '[%d] jobs [%d] items done, index [%d]' % (job_no, item_count, type_index))
+    redis.increase_jd_type_index('details')
 
   def __crawl_goods_items(self, goods_list):
     '''爬取商品的信息'''
     for goods_item in goods_list:
       try:
-        (goods_params, html) = self.__crawl_from_page(goods_item)
+        (goods_params, html, headers) = self.__crawl_from_page(goods_item)
         succeed = db.update_goods_parames(goods_item, goods_params) # 更新到数据库当中
         if not succeed:
           raise Exception('Nothing parsed!')
+        # else:
+          # self.ua.append(headers.get('User-Agent'))
+          # logging.debug("VALID UA: " + str(self.ua)) # 对随机的 ua 做测试
       except BaseException as e:
         self.total_failed_count = self.total_failed_count+1
-        if self.total_failed_count > JD_DETAIL_MAX_FAILE_COUNT:
+        if self.total_failed_count > self.max_faile_count:
           return False
         logging.error('Error while crawling goods details:\n%s' % traceback.format_exc())
+        logging.error("HEADER:%s" % headers)
         time.sleep(random.random()*CRAWL_SLEEP_TIME_SHORT) # 小憩一会儿
     return True
 
   def __crawl_from_page(self, goods_item):
     '''从商品的详情信息页面中提取商品的详情信息'''
     goods_link = 'https:' + goods_item[GOODS_LINK_ROW_INDEX]
-    html = requests.get(goods_link, headers=get_request_headers()).text
+    headers = get_detail_request_headers()
+    html = requests.get(goods_link, headers=headers).text
     soup = BeautifulSoup(html, "html.parser")
     goods_params = GoodsParams()
     # 解析产品参数信息
@@ -103,16 +114,17 @@ class JDDetails(object):
       e_contact = soup.select_one('.contact .name a')
       goods_params.store = safeGetText(e_contact, '')
       goods_params.store_url = safeGetAttr(e_contact, 'href', '')
-    return (goods_params, html)
+    return (goods_params, html, headers)
 
   def test(self):
     '''测试入口'''
     # 如果数据库的字段发生了变化这里的参数要相应的改变哦~
-    self.__crawl_goods_items([(106, 0, 0, '//item.jd.com/56765001552.html', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6)])
+    self.crawl()
 
 if __name__ == "__main__":
   '''测试入口'''
   config.logLevel = logging.DEBUG
   config.config_logging()
+  config.set_env(ENV_LOCAL)
   dt = JDDetails()
   dt.test()
