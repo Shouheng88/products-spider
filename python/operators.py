@@ -524,7 +524,7 @@ class DBOperator(object):
         rows = cur.fetchall()
         return rows
 
-    def next_goods_page_for_icons(self, source: int, icons, page_size: int, start_id: int):
+    def next_goods_page_for_icons(self, source: int, icons, page_size: int, start_id: int, type_index: int, group_count:int):
         """
         从商品列表中读取一页数据来查询商品的价格信息，这里查询到了数据之后就直接返回了，
         处理数据的时候也不会进行加锁和标记.
@@ -537,8 +537,10 @@ class DBOperator(object):
             price != -1 \
             AND source = %s \
             AND id > %s \
+            AND id %% %s = %s \
             AND (%s) \
-            ORDER BY id LIMIT %s") % (source, start_id, sql_like, page_size)
+            ORDER BY id LIMIT %s") % (source, start_id, group_count, type_index, sql_like, page_size)
+        logging.debug(sql)
         con = self.connect_db()
         cur = con.cursor()
         cur.execute(sql)
@@ -675,7 +677,7 @@ class RedisOperator(object):
 
     def add_goods_price_histories(self, goods_list):
         '''添加商品的历史价格信息'''
-        self.connect_redis()
+        self._connect_redis()
         today = get_timestamp_of_today_start()
         rows = dBOperator.get_goods_list_from_database(goods_list)
         for row in rows:
@@ -693,13 +695,29 @@ class RedisOperator(object):
         '''
         goods_id = goods_item[GOODS_ID_ROW_INDEX]
         name = GOODS_PRICE_HISTORY_REDIS_KEY_PATTERN % goods_id
-        self.connect_redis()
+        self._connect_redis()
         for d,p in price_map.items():
             price = self.r.hget(name, str(d))
             if price == None:
                 self.r.hset(name, str(d), p)
 
-    def connect_redis(self):
+    def get_jd_type_index(self, type_name):
+        '''获取京东的参数的索引'''
+        self._connect_redis()
+        index = self.r.get('jd_type_index_%s' % type_name)
+        if index == None:
+            index = 0
+        return index
+
+    def increase_jd_type_index(self, type_name):
+        '''京东的参数索引+1'''
+        self._connect_redis()
+        index = self.r.get('jd_type_index_%s' % type_name)
+        if index == None:
+            index = 0
+        self.r.set('jd_type_index_%s' % type_name, index+1)
+
+    def _connect_redis(self):
         '''连接 Redis'''
         if not self.connected:
             self.connected = True

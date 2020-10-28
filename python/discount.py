@@ -8,6 +8,7 @@ import time
 import random
 import traceback
 
+from operators import redisOperator as redis
 from operators import dBOperator as db
 from models import *
 from utils import *
@@ -16,34 +17,38 @@ from config import *
 class JDDiscount(object):
   def __init__(self):
     super().__init__()
+    self.max_faile_count = 30
     self.total_failed_count = 0
   
   def crawl(self, start_id_ = None):
     '''查询产品的折扣信息'''
     job_no = start_id = item_count = 0
+    group_count = 4 # 要将全部的折扣数据分成多少组，生产约 1w 折扣商品需要爬取，每批次约 2500 条数据需要爬取
+    type_index = int(redis.get_jd_type_index('discount')) % group_count # 折扣的自增 index
     if start_id_ != None:
       try:
         start_id = int(start_id_)
       except BaseException as e:
         logging.error("Faile to get number from param: %s" % start_id_)
     while True:
-      goods_list = db.next_goods_page_for_icons(SOURCE_JINGDONG, DISCOUNT_FILTER_LIKES, DISCOUNT_HANDLE_PER_PAGE_SIZE, start_id) # 拉取一页数据
+      goods_list = db.next_goods_page_for_icons(SOURCE_JINGDONG, ('-', '减', '券'), 20, start_id, type_index, group_count) # 拉取一页数据
       if len(goods_list) == 0: # 表示可能是数据加锁的时候失败了
         break
       item_count = item_count + len(goods_list)
       start_id = goods_list[len(goods_list)-1][GOODS_ID_ROW_INDEX]
       job_no = job_no + 1
       self.__crawl_goods_discount(goods_list)
-      logging.info('>>>> Crawling Discount: job[%d], starter[%d], [%d] items done. <<<<' % (job_no, start_id, item_count))
-      if self.total_failed_count > JD_DISCOUNT_MAX_FAILE_COUNT: # 每批次的任务结束之后就检测一下
+      logging.info('>>>> Crawling Discount: job[%d], starter[%d], index[%d], [%d] items done. <<<<' % (job_no, start_id, type_index, item_count))
+      if self.total_failed_count > self.max_faile_count: # 每批次的任务结束之后就检测一下
         # 同时输出 start_id 便于下次从失败中恢复
-        logging.error(">>>> Crawling Prices Job Stopped Due to Fatal Error: job[%d], starter[%d], [%d] items done. <<<<" % (job_no, start_id, item_count))
-        send_email('京东折扣爬虫【异常】报告', '[%d] jobs [%d] items done, starter: [%d]' % (job_no, item_count, start_id), config.log_filename)
+        logging.error(">>>> Crawling Prices Job Stopped Due to Fatal Error: job[%d], starter[%d], index[%d], [%d] items done. <<<<" % (job_no, start_id, type_index, item_count))
+        send_email('京东折扣爬虫【异常】报告', '[%d] jobs [%d] items done, starter: [%d], index[%d]' % (job_no, item_count, start_id, type_index), config.log_filename)
         break
       # 休眠一定时间，其实爬数据的时候是一批分别 http 请求的，所以大休一下拉
       time.sleep(random.random() * CRAWL_SLEEP_TIME_INTERVAL)
-    logging.info(">>>> Crawling Discount Job Finished: [%d] jobs [%d] items done <<<<" % (job_no, item_count))
-    send_email('京东折扣爬虫【完成】报告', '[%d] jobs [%d] items done' % (job_no, item_count))
+    logging.info(">>>> Crawling Discount Job Finished: [%d] jobs [%d] items done, index[%d] <<<<" % (job_no, item_count, type_index))
+    send_email('京东折扣爬虫【完成】报告', '[%d] jobs [%d] items done, index[%d]' % (job_no, item_count, type_index))
+    redis.increase_jd_type_index('discount')
 
   def __crawl_goods_discount(self, goods_list):
     '''查询商品的折扣信息'''
@@ -99,10 +104,11 @@ class JDDiscount(object):
 
   def test(self):
     '''测试入口'''
-    self.crawl_discount()
+    self.crawl()
 
 if __name__ == "__main__":
   '''测试入口'''
+  config.set_env(ENV_LOCAL)
   config.config_logging()
   dt = JDDiscount()
   dt.test()
