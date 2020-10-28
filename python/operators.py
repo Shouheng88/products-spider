@@ -527,54 +527,6 @@ class DBOperator(object):
             con.close()
         return succeed
 
-    def get_discounts_of_batch_ids(self, batch_id_list):
-        '''根据传入的折扣的 id 列表查出数据库中存储的折扣记录'''
-        rows = []
-        id_list = []
-        for id in batch_id_list:
-            id_list.append(str(id))
-        batch_ids = ','.join(id_list)
-        if len(batch_ids.strip()) == 0:
-            logging.info("Empty Batch Id List!") # 出现这个信息属于正常现象，即商品没有折扣信息
-            return rows
-        sql = "SELECT * FROM gt_discount WHERE batch_id IN ( %s )" % batch_ids
-        try:
-            con = self.connect_db()
-            cur = con.cursor()
-            cur.execute(sql)
-            rows = cur.fetchall()
-        except BaseException as e:
-            logging.error("Error While Getting Discounts:\n%s" % traceback.format_exc())
-            logging.error("SQL:\n%s" % sql)
-        return rows
-
-    def batch_insert_discounts(self, discounts):
-        '''批量向数据库中插入折扣信息'''
-        succeed = True
-        if len(discounts) == 0:
-            logging.info("Empty Discounts To Insert!!")
-            return succeed
-        sql = "INSERT INTO gt_discount (goods_id, batch_id, quota, discount, start_time, end_time,\
-            lock_version, updated_time, created_time) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
-        try:
-            values = []
-            con = self.connect_db()
-            cur = con.cursor()
-            for discount in discounts:
-                values.append((discount.goods_id, discount.batch_id, discount.quota, discount.discount, 
-                    discount.start_time, discount.end_time, 0, get_current_timestamp(), get_current_timestamp()))
-            cur.executemany(sql, tuple(values))
-            con.commit()
-        except BaseException as e:
-            succeed = False
-            logging.error("Failed While Batch Insert Discounts:\n%s" % traceback.format_exc())
-            logging.error("SQL:\n%s" % sql)
-            con.rollback()
-        finally:
-            cur.close()
-            con.close()
-        return succeed
-
     def execute(self, sql):
         ret = None
         try:
@@ -590,6 +542,26 @@ class DBOperator(object):
             cur.close()
             con.close()
         return ret
+
+    def executemany(self, sql, values: tuple):
+        succeed = True
+        if len(values) == 0:
+            logging.info("executemany(): Empty values")
+            return succeed
+        try:
+            con = self.connect_db()
+            cur = con.cursor()
+            cur.executemany(sql, tuple(values))
+            con.commit()
+        except BaseException as e:
+            succeed = False
+            con.rollback()
+            logging.error("Failed While executemany():\n%s" % traceback.format_exc())
+            logging.error("SQL:\n%s" % sql)
+        finally:
+            cur.close()
+            con.close()
+        return succeed
 
     def fetchall(self, sql):
         rows = None

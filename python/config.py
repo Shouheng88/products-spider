@@ -34,8 +34,6 @@ GOODS_LOCK_VERSION_ROW_INDEX    = 25     # lock version
 # 品牌的列索引
 BRAND_ID_ROW_INDEX              = 0
 BRAND_LINK_ROW_INDEX            = 4
-# 折扣的列索引
-DISCOUNT_BATCH_ID_ROW_INDEX     = 2
 
 # 数据源配置，用来区分不同的来源的数据
 SOURCE_JINGDONG                 = 0
@@ -47,6 +45,13 @@ MAX_LENGTH_OF_GOODS_PARAMETERS  = 2800
 MAX_LENGTH_OF_GOODS_PACKAGES    = 2800
 
 # 命令常量值
+# 0 4 * * * sh /home/box_admin_wsh/.tools/mysql_backup.sh
+# 0 3 * * * sh ~/.tools/clean.sh
+# 0 2 * * * sh /home/box_admin_wsh/.tools/redis_backup.sh
+# 0 0 * * 2,4,6 /bin/bash /home/box_admin_wsh/shuma/shell/run_prod.sh start crawl_jd_goods
+# 0 12 1,15 * * /bin/bash /home/box_admin_wsh/shuma/shell/run_prod.sh start crawl_jd_prices
+# 0 20 * * * /bin/bash /home/box_admin_wsh/shuma/shell/run_prod.sh start crawl_jd_detail
+# 0 16 * * 1,3,5 /bin/bash /home/box_admin_wsh/shuma/shell/run_prod.sh start crawl_jd_discount
 CMD_WRITE_JD_CATEGORY           = 'write_category'
 CMD_CRAWL_JD_CATEGORY           = 'crawl_jd_category'
 CMD_CRAWL_JD_GOODS              = 'crawl_jd_goods'    # 每周 2,4,6 爬取商品信息

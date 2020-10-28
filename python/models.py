@@ -164,12 +164,17 @@ class Discount(object):
   '''商品的折扣信息'''
   def __init__(self, goods_id, batch_id, quota, discount, start_time, end_time):
     super().__init__()
+    self.id = None
     self.goods_id = goods_id
     self.batch_id = batch_id
     self.quota = quota            # 满足多少金额的时候可以使用
     self.discount = discount      # 真实的折扣信息
     self.start_time = start_time
     self.end_time = end_time
+    self.remark = None
+    self.lock_version = None
+    self.updated_time = None
+    self.created_time = None
 
 def goodsComment2Dict(comment):
   return {

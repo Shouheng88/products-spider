@@ -7,6 +7,7 @@ import re
 import time
 import random
 import traceback
+from typing import List
 
 from operators import redisOperator as redis
 from operators import dBOperator as db
@@ -96,13 +97,12 @@ class JDDiscount(object):
         logging.warning("Failed To Get Discount Due: the cat not found.")
     # 过滤已经存在的折扣
     batch_id_list = list(discount_map.keys())
-    rows = db.get_discounts_of_batch_ids(batch_id_list)
-    for row in rows:
-      batch_id = int(row[DISCOUNT_BATCH_ID_ROW_INDEX])
-      if batch_id in discount_map:
-        discount_map.pop(batch_id)
+    discounts = do.get_discounts_of_batch_ids(batch_id_list)
+    for discount in discounts:
+      if int(discount.batch_id) in discount_map:
+        discount_map.pop(int(discount.batch_id))
     if len(discount_map) != 0:
-      db.batch_insert_discounts(discount_map.values())
+      do.batch_insert_discounts(discount_map.values())
 
   def _random_discount_area(self):
     '''随机返回一个地址信息'''
@@ -112,6 +112,48 @@ class JDDiscount(object):
   def test(self):
     '''测试入口'''
     self.crawl()
+
+class DiscountOperator(object):
+  def __init__(self):
+    super().__init__()
+
+  def get_discounts_of_batch_ids(self, batch_id_list):
+    '''根据传入的折扣的 id 列表查出数据库中存储的折扣记录'''
+    id_list = []
+    for id in batch_id_list:
+      id_list.append(str(id))
+    batch_ids = ','.join(id_list)
+    if len(batch_ids.strip()) == 0:
+      logging.info("Empty Batch Id List!") # 出现这个信息属于正常现象，即商品没有折扣信息
+      return []
+    sql = "SELECT * FROM gt_discount WHERE batch_id IN ( %s )" % batch_ids
+    rows = db.fetchall(sql)
+    return self._rows_2_discounts(rows)
+
+  def batch_insert_discounts(self, discounts: List[Discount]):
+    '''批量向数据库中插入折扣信息'''
+    sql = "INSERT INTO gt_discount (goods_id, batch_id, quota, discount, start_time, end_time,\
+      lock_version, updated_time, created_time) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
+    values = []
+    for discount in discounts:
+      values.append((discount.goods_id, discount.batch_id, discount.quota, discount.discount, 
+        discount.start_time, discount.end_time, 0, get_current_timestamp(), get_current_timestamp()))
+    return db.executemany(sql, tuple(values))
+
+  def _row_2_discount(self, row) -> Discount:
+    discount = Discount(None, None, None, None, None, None)
+    for name, value in row.items():
+      setattr(discount, name, value)
+    return discount
+
+  def _rows_2_discounts(self, rows) -> List[Discount]:
+    discounts = []
+    for row in rows:
+      discount = self._row_2_discount(row)
+      discounts.append(discount)
+    return discounts
+
+do = DiscountOperator()
 
 if __name__ == "__main__":
   '''测试入口'''
