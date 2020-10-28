@@ -13,6 +13,7 @@ from operators import dBOperator as db
 from models import *
 from utils import *
 from config import *
+from channels import *
 
 class JDDiscount(object):
   def __init__(self):
@@ -57,10 +58,10 @@ class JDDiscount(object):
     channel_id_list = []
     for goods_item in goods_list:
       channel_id_list.append(goods_item[GOODS_CHANNEL_ID_ROW_INDEX])
-    channels = db.get_channels_of_channel_ids(channel_id_list)
+    channels = co.get_channels_of_ids(channel_id_list)
     cat_map = {}
     for channel in channels:
-      cat_map[channel[CHANNEL_ID_ROW_INDEX]] = channel[CHANNEL_CAT_ROW_INDEX]
+      cat_map[channel.id] = channel.cat
     # 循环抓取每个商品条目
     discount_map = {}
     for goods_item in goods_list:
@@ -116,5 +117,8 @@ if __name__ == "__main__":
   '''测试入口'''
   config.set_env(ENV_LOCAL)
   config.config_logging()
-  dt = JDDiscount()
-  dt.test()
+  # dt = JDDiscount()
+  # dt.test()
+  channels = co.get_channels_of_ids([498,499,500])
+  for c in channels:
+    print(c.name)

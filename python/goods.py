@@ -20,14 +20,15 @@ from models import *
 from config import *
 from operators import redisOperator as redis
 from operators import dBOperator as db
+from channels import *
 
 class JDGoods(object):
   '''京东商品信息爬取。这个类主要用来从商品列表中抓取商品的价格等基础信息（不包含商品的具体的参数信息）'''
   def __init__(self):
     super().__init__()
-    self.max_page = 100 # 爬取的最大页数
-    self.max_retry_count = 3 # 京东爬虫爬取评论的最大重试次数
-    self.max_fail_count = 30 # 京东爬取数据的时候最大的失败次数，达到了这个数字之后认定为存在严重的问题，需要停止程序
+    self.max_page = 100         # 爬取的最大页数
+    self.max_retry_count = 3    # 京东爬虫爬取评论的最大重试次数
+    self.max_fail_count = 30    # 京东爬取数据的时候最大的失败次数，达到了这个数字之后认定为存在严重的问题，需要停止程序
     self.total_failed_count = 0
 
   def crawl(self):
@@ -39,40 +40,35 @@ class JDGoods(object):
     '''
     job_no = 0 # job 编号
     while True:      
-      channel = db.next_channel_to_handle()
+      channel = co.next_channel_to_handle()
       if channel == None: # 没有需要爬取的任务了
         break
       job_no = job_no + 1 # 对任务进行解析
-      channel_name = channel[CHANNEL_NAME_ROW_INDEX]
-      logging.info(">>>> Crawling Channel: job[%d], channel[%s] <<<<" % (job_no, channel_name))
-      succeed = self.__crawl_jd_channel(channel) # 爬取某个品类的数据
+      logging.info(">>>> Crawling Channel: job[%d], channel[%s] <<<<" % (job_no, channel.name))
+      succeed = self._crawl_jd_channel(channel) # 爬取某个品类的数据
       if not succeed:
         logging.warning(">>>> Crawling Channel Job Stopped Due to Fatal Error! [%d] channels done <<<<" % job_no)
         send_email('京东商品爬虫【异常】报告', '[%d] channels done' % (job_no), config.log_filename)
         return
-      db.mark_channel_as_done(channel) # 将指定的品类标记为完成
+      co.mark_channel_as_done(channel) # 将指定的品类标记为完成
     logging.info(">>>> Crawling Channel Job Finished: [%d] channels done <<<<" % job_no)
     send_email('京东商品爬虫【完成】报告', '[%d] channels done' % (job_no))
 
-  def __crawl_jd_channel(self, channel):
+  def _crawl_jd_channel(self, channel: Channel):
     '''爬取指定的品类的所有的信息'''
-    channel_url = channel[CHANNEL_JD_URL_ROW_INDEX]
-    channel_id = channel[CHANNEL_ID_ROW_INDEX]
-    channel_name = channel[CHANNEL_NAME_ROW_INDEX]
-    channel_max_page = channel[CHANNEL_MAXPAGE_ROW_INDEX]
     # 抓取分类的信息，也就是第一页的信息
-    (succeed, max_page) = self.__crawl_jd_page(channel_url, channel, True)
-    max_page = min(max_page, self.max_page, channel_max_page)
+    (succeed, max_page) = self.__crawl_jd_page(channel.jdurl, channel, True)
+    max_page = min(max_page, self.max_page, channel.max_page_count)
     page_count = 1 # 已经抓取的页数
     for page_num in range(1, max_page):
-      page_url = self.__get_page_url_of_page_number(channel_url, page_num)
+      page_url = self.__get_page_url_of_page_number(channel.jdurl, page_num)
       (succeed, _max_page) = self.__crawl_jd_page(page_url, channel, False)
       page_count = page_count + 1
       if succeed:
-        logging.info(">>>> Crawling Channel [%s] [%d]/[%d] <<<<" % (channel_name, page_count, max_page))
+        logging.info(">>>> Crawling Channel [%s] [%d]/[%d] <<<<" % (channel.name, page_count, max_page))
       else:
         self.total_failed_count = self.total_failed_count + 1
-        logging.error(">>>> Failed to Scrawl Channel [%s] [%d]/[%d] <<<<" % (channel_name, page_count, max_page))
+        logging.error(">>>> Failed to Scrawl Channel [%s] [%d]/[%d] <<<<" % (channel.name, page_count, max_page))
         if self.total_failed_count > self.max_fail_count:
           # 在这里进行监听，如果达到了最大从失败次数，就返回 False
           return False
@@ -84,10 +80,8 @@ class JDGoods(object):
     '''获取指定品类的指定的页码，用来统一实现获取指定的页码的地址的逻辑'''
     return jdurl + "&page=" + str(page_num)
 
-  def __crawl_jd_page(self, page_url, channel, first_page):
+  def __crawl_jd_page(self, page_url, channel: Channel, first_page):
     '''京东商品列表信息抓取，最大的页码、产品详情等基础信息'''
-    channel_id = channel[CHANNEL_ID_ROW_INDEX]
-    channel_name = channel[CHANNEL_NAME_ROW_INDEX]
     headers = get_request_headers()
     html = requests.get(page_url, headers=headers).text
     soup = BeautifulSoup(html, "html.parser")
@@ -96,11 +90,11 @@ class JDGoods(object):
     (succeed3, brand_list) = self.__crawl_jd_brand_list(soup)
     # 为爬取到的结果添加分类信息
     for goods_item in goods_list:
-      goods_item.channel_id = channel_id
-      goods_item.channel = channel_name
+      goods_item.channel_id = channel.id
+      goods_item.channel = channel.name
     for brand_item in brand_list:
-      brand_item.channel_id = channel_id
-      brand_item.channel = channel_name
+      brand_item.channel_id = channel.id
+      brand_item.channel = channel.name
     # 持久化处理爬取结果
     if succeed2:
       # 爬取京东商品的评论信息
@@ -116,56 +110,43 @@ class JDGoods(object):
       db.batch_insert_or_update_brands(brand_list)
     return (succeed2 and succeed4 and succeed5, max_page)
 
-  def __crawl_jd_max_page(self, soup):
+  def __crawl_jd_max_page(self, soup: BeautifulSoup):
     '''解析京东的最大页数'''
     # 解析最大页码
     succeed = True
     max_page = self.max_page
     try:
-      pageText = soup.find(id="J_topPage").find("span").text
-      index = pageText.find("/")
-      max_page = int(pageText[(index+1):])
+      max_page = int(soup.select_one("#J_topPage > span > i").text)
     except BaseException as e:
       logging.error("Error While Getting Page Count:\n%s" % traceback.format_exc())
       succeed = False
     # 返回结果
     return (succeed, max_page)
 
-  def __crawl_jd_goods_list(self, soup):
+  def __crawl_jd_goods_list(self, soup: BeautifulSoup):
     '''解析京东的产品列表'''
     succeed = True
     goods_list = []
     try:
-      goods_list_parent = soup.find(id="J_goodsList")
-      goods_list_items = goods_list_parent.find_all(class_="gl-item")
-      for goods_list_item in goods_list_items: # 解析产品信息
-        # 几个信息组成部分
-        sku_id = safeGetAttr(goods_list_item, 'data-sku', '')
-        p_img = goods_list_item.find(class_="p-img")
-        p_price = goods_list_item.find(class_="p-price")
-        p_name = goods_list_item.find(class_="p-name")
-        p_commit = goods_list_item.find(class_="p-commit")
-        p_shop = goods_list_item.find(class_="p-shop")
-        p_icons = goods_list_item.find(class_="p-icons")
-        # 通过判断名称是否存在来决定程序是否出现问题
-        if p_name == None:
-          succeed = False
-          logging.error("FATAL ERROR!!! FAILED TO GET ATTRIBUTE!!!!")
-          break
+      goods_elements = soup.select("#J_goodsList > ul > li")
+      for goods_element in goods_elements: # 解析产品信息
+        sku_id = safeGetAttr(goods_element, 'data-sku', '')
         # 解析具体的信息：注意防范异常，提高程序鲁棒性
-        url = safeGetAttr(p_img.find("a"), "href", "")
+        url = safeGetAttr(goods_element.select_one(".p-img a"), "href", "")
         if len(url) > 200: # 个别商品的链接存在问题
           url = '//item.jd.com/%s.html' % sku_id
-        img = safeGetAttr(p_img.find("img"), "data-lazy-img", "")
+        img = safeGetAttr(goods_element.select_one(".p-img img"), "data-lazy-img", "")
         if img == None:
-          img = safeGetAttr(p_img.find("img"), "src", "")
-        vid = safeGetAttr(p_img.find(tag_has_venid_attr), "data-venid", "")
-        prince_type = safeGetText(p_price.find("em"), "")
-        price = safeGetText(p_price.find("i"), "-1")
-        promo = safeGetAttr(p_name.find("a"), "title", "")
-        name = safeGetText(p_name.find("a").find("em"), "")
-        commit_link = safeGetAttr(p_commit.find("a"), "href", "")
-        icons = safeGetText(p_icons.find("i"), "")
+          img = safeGetAttr(goods_element.select_one(".p-img img"), "src", "")
+        vid = safeGetAttr(goods_element.select_one(".p-img div"), "data-venid", "")
+        prince_type = safeGetText(goods_element.select_one(".p-price em"), "")
+        price = safeGetText(goods_element.select_one(".p-price i"), "-1")
+        promo = safeGetAttr(goods_element.select_one(".p-name a"), "title", "")
+        name = safeGetText(goods_element.select_one(".p-name a em"), "")
+        commit_link = safeGetAttr(goods_element.select_one(".p-commit a"), "href", "")
+        icons = safeGetText(goods_element.select_one(".p-icons i"), "")
+        # logging.debug('url:%s\nimg:%s\nvid:%s\npt:%s\np:%s\npromo:%s\nname:%s\ncl:%s\nicons:%sskuid:%s\n'\
+          # % (url, img, vid, prince_type, price, promo, name, commit_link, icons, sku_id))
         # 组装产品信息，价格要扩大 100 倍
         goods_item = GoodsItem(name, promo, url, img, int(float(price)*100), prince_type, icons, vid)
         goods_item.sku_id = sku_id
@@ -185,16 +166,12 @@ class JDGoods(object):
       brand_list_tags = soup.find_all(id=re.compile("brand")) # 所有的包含 id 包含 brand 的标签，即品牌
       for brand_list_tag in brand_list_tags:
         display_order = display_order + 1
-        data_initial = safeGetAttr(brand_list_tag, "data-initial", "")
-        name = safeGetAttr(brand_list_tag.find("a"), "title", "")
-        link = safeGetAttr(brand_list_tag.find("a"), "href", "")
-        logo = safeGetAttr(brand_list_tag.find("img"), "src", "")
         # 组装品牌信息
         brand_item = BrandItem()
-        brand_item.name = name
-        brand_item.data_initial = data_initial
-        brand_item.logo = logo
-        brand_item.link = link
+        brand_item.name = safeGetAttr(brand_list_tag.find("a"), "title", "")
+        brand_item.data_initial = safeGetAttr(brand_list_tag, "data-initial", "")
+        brand_item.logo = safeGetAttr(brand_list_tag.find("img"), "src", "")
+        brand_item.link = safeGetAttr(brand_list_tag.find("a"), "href", "")
         brand_item.dispaly_order = display_order
         brand_list.append(brand_item)
     except BaseException as e:
@@ -309,5 +286,8 @@ def tag_has_venid_attr(tag):
 if __name__ == "__main__":
   '''调试入口'''
   config.config_logging()
-  gd = TBGoods()
-  gd.test()
+  config.set_env(ENV_LOCAL)
+  # gd = TBGoods()
+  # gd.test()
+  ret = co.next_channel_to_handle()
+  print(ret.name)
