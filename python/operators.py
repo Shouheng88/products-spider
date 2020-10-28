@@ -682,7 +682,7 @@ class RedisOperator(object):
         for row in rows:
             goods_id = row[GOODS_ID_ROW_INDEX]
             price = row[GOODS_PRICE_ROW_INDEX]
-            name = GOODS_PRICE_HISTORY_REDIS_KEY_PATTERN % goods_id
+            name = 'GOODS:PRICE:HISTORY:%d' % goods_id
             self.r.hset(name, str(today), price)
 
     def add_prices(self, goods_item, price_map):
@@ -693,7 +693,7 @@ class RedisOperator(object):
         这里计算出来的价格也就当作一个补充吧，即项目正式开启爬虫之前进行的数据抓取
         '''
         goods_id = goods_item[GOODS_ID_ROW_INDEX]
-        name = GOODS_PRICE_HISTORY_REDIS_KEY_PATTERN % goods_id
+        name = 'GOODS:PRICE:HISTORY:%d' % goods_id
         self._connect_redis()
         for d,p in price_map.items():
             price = self.r.hget(name, str(d))

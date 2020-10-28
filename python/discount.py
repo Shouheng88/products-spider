@@ -66,7 +66,7 @@ class JDDiscount(object):
       cat = cat_map.get(goods_item[GOODS_CHANNEL_ID_ROW_INDEX])
       if cat != None:
         req = "http://cd.jd.com/promotion/v2?skuId=%s&area=%s&venderId=%s&cat=%s" % (
-          goods_item[GOODS_SKU_ID_ROW_INDEX], DISCOUNT_AREA, goods_item[GOODS_VEN_ID_ROW_INDEX], cat)
+          goods_item[GOODS_SKU_ID_ROW_INDEX], self._random_discount_area(), goods_item[GOODS_VEN_ID_ROW_INDEX], cat)
         try:
           headers = get_request_headers()
           resp_text = requests.get(req, headers=headers).text
@@ -101,6 +101,11 @@ class JDDiscount(object):
         discount_map.pop(batch_id)
     if len(discount_map) != 0:
       db.batch_insert_discounts(discount_map.values())
+
+  def _random_discount_area(self):
+    '''随机返回一个地址信息'''
+    return random.choice(['12_904_3373_0', '15_1213_1214_52674', '15_1273_1275_22204', '15_1262_1267_56327',
+      '15_1158_1224_46479', '15_1250_1251_44548', '15_1255_15944_44627', '15_1255_15944_59428'])
 
   def test(self):
     '''测试入口'''

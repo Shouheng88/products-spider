@@ -20,6 +20,8 @@ class JDCategory(object):
         self.dist["二级品类链接"] = []
         self.dist["三级品类"] = []
         self.dist["三级品类链接"] = []
+        self.jd_category_store = "../data/京东分类.xlsx"
+        self.jd_category_store_result = "../data/京东分类-处理.xlsx"
 
     def crawl(self):
         '''爬取京东的品类信息'''
@@ -45,13 +47,13 @@ class JDCategory(object):
                         self.dist["三级品类"].append(collection_item_name)
                         self.dist["三级品类链接"].append(collection_item_link)
         eo = ExcelOperator()
-        eo.write_excel("京东", self.dist, JD_CATEGORY_STORE)
+        eo.write_excel("京东", self.dist, self.jd_category_store)
 
     def write_results(self):
         """将处理结果写入到数据库中"""
         # 读取 Excel
         eo = ExcelOperator()
-        r_dist = eo.read_excel(JD_HANDLED_CATEGORY_STORE)
+        r_dist = eo.read_excel(self.jd_category_store_result)
         cols = r_dist["京东"]
         dist = {}
         for idx in range(0, len(cols[0])):
@@ -102,6 +104,7 @@ class TBCategory(object):
         self.dist["二级品类链接"] = []
         self.dist["三级品类"] = []
         self.dist["三级品类链接"] = []
+        self.tb_category_store = "../data/淘宝分类.xlsx"
 
     def crawl(self):
         '''爬取淘宝分类数据'''
@@ -133,7 +136,7 @@ class TBCategory(object):
                     self.dist["三级品类"].append(collection_item_name)
                     self.dist["三级品类链接"].append(collection_item_link)
         eo = ExcelOperator()
-        eo.write_excel("淘宝", self.dist, TB_CATEGORY_STORE)
+        eo.write_excel("淘宝", self.dist, self.tb_category_store)
 
 if __name__ == "__main__":
     config.config_logging()

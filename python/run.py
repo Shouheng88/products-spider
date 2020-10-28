@@ -38,97 +38,57 @@ def main(argv):
     try:
         # :和= 表示接受参数
         opts, args = getopt.getopt(argv, "-h:-c:-e:-a:", ["help", "command=", 'env=', 'arg='])
-    except getopt.GetoptError:
-        __show_invalid_command()
+    except BaseException as e:
+        __show_invalid_command(str(e))
         sys.exit(2)
     if len(opts) == 0:
-        __show_invalid_command()
+        __show_invalid_command('empty parameters')
         return
-    env = None # 环境
+    cmd = param = env = None
     for opt, arg in opts:
         if opt in ('-e', '--env'):
             env = arg
-    param = None # 参数
-    for opt, arg in opts:
-        if opt in ('-a', '--arg'):
+        elif opt in ('-a', '--arg'):
             param = arg
-    for opt, arg in opts:
-        if opt in ('-h', '--help'):
-            print(command_info)
-            sys.exit()
-        elif opt in ("-a", "--arg", "-e", "--env"):
-            continue # 过滤掉
         elif opt in ("-c", "--command"):
-            if env == None:
-                print('Error: Missing evnironment.')
-                print(command_info)
-                return
-            __config_environment(env, arg)
-            if arg == CMD_WRITE_JD_CATEGORY: # 讲处理好的品类信息写入到数据库中
-                print("Start to write JD categories to database ...")
-                jd = JDCategory()
-                jd.write_results()
-            elif arg == CMD_CRAWL_JD_CATEGORY: # 爬取京东的产品的品类信息
-                print("CraStart to crawlwling JD category ...")
-                jd = JDCategory()
-                jd.crawl()
-            elif arg == CMD_CRAWL_JD_GOODS: # 爬取京东每个品类的产品列表
-                print("Start to crawl JD goods ...")
-                jd = JDGoods()
-                jd.crawl()
-            elif arg == CMD_CRAWL_JD_DETAIL: # 爬取京东每个产品的详情信息
-                print('Start to crawl JD detail ...')
-                jd = JDDetails()
-                jd.crawl()
-                pass
-            elif arg == CMD_CRAWL_JD_DISCOUNT: # 爬取京东每个商品的折扣信息
-                print('Start to crawl JD discount, starter[%s] ...' % param)
-                jd = JDDiscount()
-                jd.crawl(param)
-                pass
-            elif arg == CMD_CRAWL_JD_PRICES: # 爬取京东每个产品的价格信息
-                print('Start to crawl JD prices, starter[%s] ...' % param)
-                jd = JDPrices()
-                jd.crawl(param)
-                pass
-            elif arg == CMD_CRAWL_HISTORY:
-                print('Start to crawl price histories, starter[%s] ...' % param)
-                mmb = ManmanBuy()
-                mmb.crawl()
-            else:
-                 __show_invalid_command()
-        else:
-            __show_invalid_command()
+            cmd = arg
+        elif opt in ('-h', '--help'):
+            print(command_info)
+            return
+    if cmd == None:
+        __show_invalid_command('command required')
+    elif env == None:
+        __show_invalid_command('environment required')
+    else:
+        config.set_cmd(cmd)
+        config.set_env(env)
+        config.config_logging()
+        logging.debug("Execution: env[%s] Cmd[%s] para[%s]" % (env, arg, param))
+        if cmd == CMD_WRITE_JD_CATEGORY: # 讲处理好的品类信息写入到数据库中
+            print("Start to write JD categories to database ...")
+            JDCategory().write_results()
+        elif cmd == CMD_CRAWL_JD_CATEGORY: # 爬取京东的产品的品类信息
+            print("CraStart to crawlwling JD category ...")
+            JDCategory().crawl()
+        elif cmd == CMD_CRAWL_JD_GOODS: # 爬取京东每个品类的产品列表
+            print("Start to crawl JD goods ...")
+            JDGoods().crawl()
+        elif cmd == CMD_CRAWL_JD_DETAIL: # 爬取京东每个产品的详情信息
+            print('Start to crawl JD detail ...')
+            JDDetails().crawl()
+        elif cmd == CMD_CRAWL_JD_DISCOUNT: # 爬取京东每个商品的折扣信息
+            print('Start to crawl JD discount, starter[%s] ...' % param)
+            JDDiscount().crawl(param)
+        elif cmd == CMD_CRAWL_JD_PRICES: # 爬取京东每个产品的价格信息
+            print('Start to crawl JD prices, starter[%s] ...' % param)
+            JDPrices().crawl(param)
+        elif cmd == CMD_CRAWL_HISTORY: # 爬取商品的历史价格信息
+            print('Start to crawl price histories, starter[%s] ...' % param)
+            ManmanBuy().crawl()
 
-def __show_invalid_command():
-    print('Error: Unrecognized command.')
+def __show_invalid_command(info: str):
+    print('Error: Unrecognized command: %s' % info)
     print(command_info)     
-
-def __config_environment(env: str, cmd: str):
-    """配置日志"""
-    # 配置日志级别
-    # TODO 将各个命令包装成一个类
-    if env == ENV_LOCAL or env == ENV_TEST:
-        config.logLevel = logging.DEBUG
-    elif env == ENV_SERVER_LOCAL or env == ENV_SERVER_REMOTE:
-        config.logLevel = logging.INFO
-    # 区分日志文件
-    if cmd == CMD_WRITE_JD_CATEGORY or cmd == CMD_CRAWL_JD_CATEGORY:
-        config.logAppendix = '-category'
-    elif cmd == CMD_CRAWL_JD_GOODS:
-        config.logAppendix = '-goods'
-    elif cmd == CMD_CRAWL_JD_DETAIL:
-        config.logAppendix = '-detail'
-    elif cmd == CMD_CRAWL_JD_PRICES:
-        config.logAppendix = '-prices'
-    elif cmd == CMD_CRAWL_JD_DISCOUNT:
-        config.logAppendix = '-discount'
-    elif cmd == CMD_CRAWL_HISTORY:
-        config.logAppendix = '-history'
-    # 其他属性配置
-    config.config_logging()
-    config.set_env(env)
-    logging.debug("Execution: env[%s] Cmd[%s]" % (env, cmd))
 
 if __name__ == "__main__":
     main(sys.argv[1:])

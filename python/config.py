@@ -64,14 +64,6 @@ SOURCE_TAMLL                    = 2
 MAX_LENGTH_OF_GOODS_PARAMETERS  = 2800
 MAX_LENGTH_OF_GOODS_PACKAGES    = 2800
 
-# Redis 相关的键信息
-GOODS_PRICE_HISTORY_REDIS_KEY_PATTERN = "GOODS:PRICE:HISTORY:%d"  # 商品历史价格的 Redis 键的格式
-
-# 处理的分类的文件位置
-JD_CATEGORY_STORE = "../data/京东分类.xlsx"
-TB_CATEGORY_STORE = "../data/淘宝分类.xlsx"
-JD_HANDLED_CATEGORY_STORE = "../data/京东分类-处理.xlsx"
-
 # 命令常量值
 CMD_WRITE_JD_CATEGORY           = 'write_category'
 CMD_CRAWL_JD_CATEGORY           = 'crawl_jd_category'
@@ -80,17 +72,11 @@ CMD_CRAWL_JD_DETAIL             = 'crawl_jd_detail'   # 每周周日 0:00 开始
 CMD_CRAWL_JD_DISCOUNT           = 'crawl_jd_discount' # 每周周三 16:00 开始爬取折扣信息
 CMD_CRAWL_JD_PRICES             = 'crawl_jd_prices'   # 每月 1,15 号 12:00 检查价格信息
 CMD_CRAWL_HISTORY               = 'crawl_history'
-
 # 环境值常量
 ENV_LOCAL                       = 'local'
 ENV_TEST                        = 'test'
 ENV_SERVER_LOCAL                = 'server_local'
 ENV_SERVER_REMOTE               = 'server_remote'
-
-DISCOUNT_AREAS = ['12_904_3373_0', '15_1213_1214_52674', '15_1273_1275_22204', '15_1262_1267_56327',
-  '15_1158_1224_46479', '15_1250_1251_44548', '15_1255_15944_44627', '15_1255_15944_59428']
-
-DISCOUNT_AREA = random.choice(DISCOUNT_AREAS)
 
 def get_request_headers():
   return {
@@ -118,16 +104,23 @@ class GlobalConfig(object):
     self.redis = RedisConfig()
     self.log_filename = None
 
-  def config_logging(self):
-    """配置应用日志"""
-    LOG_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
-    DATE_FORMAT = "%m/%d/%Y %H:%M:%S %p"
-    self.log_filename = "log/" + str(datetime.date.today()) + self.logAppendix + '.log' # 指定输出路径，日志归纳到 log 目录下
-    logging.basicConfig(filename=self.log_filename, filemode='a', level=self.logLevel, format=LOG_FORMAT, datefmt=DATE_FORMAT)
-    logging.FileHandler(filename=self.log_filename, encoding='utf-8')
+  def set_cmd(self, cmd: str):
+    if cmd == CMD_WRITE_JD_CATEGORY or cmd == CMD_CRAWL_JD_CATEGORY:
+        config.logAppendix = '-category'
+    elif cmd == CMD_CRAWL_JD_GOODS:
+        config.logAppendix = '-goods'
+    elif cmd == CMD_CRAWL_JD_DETAIL:
+        config.logAppendix = '-detail'
+    elif cmd == CMD_CRAWL_JD_PRICES:
+        config.logAppendix = '-prices'
+    elif cmd == CMD_CRAWL_JD_DISCOUNT:
+        config.logAppendix = '-discount'
+    elif cmd == CMD_CRAWL_HISTORY:
+        config.logAppendix = '-history'
 
   def set_env(self, env: str):
     """设置环境信息"""
+    self._set_env_log_level(env)
     if env == ENV_LOCAL:
       self.db.host = 'localhost'
       self.db.port = ***REMOVED***
@@ -165,6 +158,21 @@ class GlobalConfig(object):
       pass
     else:
       logging.warning('Invalid Environment!')
+
+  def _set_env_log_level(self, env):
+    '''设置输出日志的级别'''
+    if env == ENV_LOCAL or env == ENV_TEST:
+      self.logLevel = logging.DEBUG
+    elif env == ENV_SERVER_LOCAL or env == ENV_SERVER_REMOTE:
+      self.logLevel = logging.INFO
+
+  def config_logging(self):
+    """配置应用日志"""
+    LOG_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
+    DATE_FORMAT = "%m/%d/%Y %H:%M:%S %p"
+    self.log_filename = "log/" + str(datetime.date.today()) + self.logAppendix + '.log' # 指定输出路径，日志归纳到 log 目录下
+    logging.basicConfig(filename=self.log_filename, filemode='a', level=self.logLevel, format=LOG_FORMAT, datefmt=DATE_FORMAT)
+    logging.FileHandler(filename=self.log_filename, encoding='utf-8')
 
 class DBConfig(object):
   """数据库配置类"""
