@@ -21,7 +21,7 @@ Options: \n\
         %s         : Crawl jingdong item detail\n\
         %s       : Crawl jingdong item discount\n\
         %s         : Crawl jingdong item prices from batch api, used to detect item sold out\n\
-        %s      : Crawl price hisotry\m\
+        %s           : Crawl price hisotry\n\
     -e[--env]                   Environment\n\
         %s                   : Local develop\n\
         %s                    : Test server\n\
@@ -107,6 +107,7 @@ def __show_invalid_command():
 def __config_environment(env: str, cmd: str):
     """配置日志"""
     # 配置日志级别
+    # TODO 将各个命令包装成一个类
     if env == ENV_LOCAL or env == ENV_TEST:
         config.logLevel = logging.DEBUG
     elif env == ENV_SERVER_LOCAL or env == ENV_SERVER_REMOTE:
@@ -122,6 +123,8 @@ def __config_environment(env: str, cmd: str):
         config.logAppendix = '-prices'
     elif cmd == CMD_CRAWL_JD_DISCOUNT:
         config.logAppendix = '-discount'
+    elif cmd == CMD_CRAWL_HISTORY:
+        config.logAppendix = '-history'
     # 其他属性配置
     config.config_logging()
     config.set_env(env)

@@ -512,6 +512,18 @@ class DBOperator(object):
         rows = cur.fetchall()
         return rows
 
+    def next_goods_page_without_source(self, page_size: int, start_id: int):
+        '''按页取商品数据'''
+        sql = ("SELECT * FROM gt_item WHERE \
+            price != -1 \
+            AND id > %s \
+            ORDER BY id LIMIT %s") % (start_id, page_size)
+        con = self.connect_db()
+        cur = con.cursor()
+        cur.execute(sql)
+        rows = cur.fetchall()
+        return rows
+
     def next_goods_page_for_icons(self, source: int, icons, page_size: int, start_id: int):
         """
         从商品列表中读取一页数据来查询商品的价格信息，这里查询到了数据之后就直接返回了，
@@ -542,6 +554,7 @@ class DBOperator(object):
         for channel_id in channel_id_list:
             channel_ids_str.append(str(channel_id))
         channel_ids = ','.join(channel_ids_str)
+        # TODO 不同的服务器上面 channel id 不同，所以不应该使用 channel id 作为标志
         sql = ("SELECT * FROM gt_item WHERE \
             price != -1 \
             AND channel_id in (%s) \
