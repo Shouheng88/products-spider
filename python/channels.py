@@ -92,6 +92,8 @@ class ChannelOperator(object):
 
   def _row_2_channel(self, row) -> Channel:
     '''将数据库中读取到的字典转换为 Channel 对象'''
+    if row == None:
+      return None
     channel = Channel()
     for name, value in row.items():
       setattr(channel, name, value)
@@ -99,6 +101,8 @@ class ChannelOperator(object):
 
   def _rows_2_channels(self, rows) -> List[Channel]:
     channels = []
+    if rows == None or len(rows) == 0:
+      return channels
     for row in rows:
       channel = self._row_2_channel(row)
       channels.append(channel)

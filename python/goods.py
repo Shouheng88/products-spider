@@ -9,6 +9,7 @@ import traceback
 import json
 import time
 import random
+from typing import List
 from selenium.webdriver.common.by import By
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -21,6 +22,7 @@ from config import *
 from operators import redisOperator as redis
 from operators import dBOperator as db
 from channels import *
+from brands import *
 
 class JDGoods(object):
   '''京东商品信息爬取。这个类主要用来从商品列表中抓取商品的价格等基础信息（不包含商品的具体的参数信息）'''
@@ -86,15 +88,8 @@ class JDGoods(object):
     html = requests.get(page_url, headers=headers).text
     soup = BeautifulSoup(html, "html.parser")
     (succeed1, max_page) = self.__crawl_jd_max_page(soup)
-    (succeed2, goods_list) = self.__crawl_jd_goods_list(soup)
-    (succeed3, brand_list) = self.__crawl_jd_brand_list(soup)
-    # 为爬取到的结果添加分类信息
-    for goods_item in goods_list:
-      goods_item.channel_id = channel.id
-      goods_item.channel = channel.name
-    for brand_item in brand_list:
-      brand_item.channel_id = channel.id
-      brand_item.channel = channel.name
+    (succeed2, goods_list) = self.__crawl_jd_goods_list(soup, channel)
+    (succeed3, brand_list) = self.__crawl_jd_brand_list(soup, channel)
     # 持久化处理爬取结果
     if succeed2:
       # 爬取京东商品的评论信息
@@ -107,7 +102,7 @@ class JDGoods(object):
       logging.error("ILLEGAL UA:%s" % headers.get("User-Agent"))
     if succeed3 and first_page:
       # 对于每个品类，只在爬取第一页的时候更新品牌信息，减少服务器压力
-      db.batch_insert_or_update_brands(brand_list)
+      bo.batch_insert_or_update_brands(brand_list)
     return (succeed2 and succeed4 and succeed5, max_page)
 
   def __crawl_jd_max_page(self, soup: BeautifulSoup):
@@ -123,7 +118,7 @@ class JDGoods(object):
     # 返回结果
     return (succeed, max_page)
 
-  def __crawl_jd_goods_list(self, soup: BeautifulSoup):
+  def __crawl_jd_goods_list(self, soup: BeautifulSoup, channel: Channel) -> (bool, List[GoodsItem]):
     '''解析京东的产品列表'''
     succeed = True
     goods_list = []
@@ -150,6 +145,8 @@ class JDGoods(object):
         # 组装产品信息，价格要扩大 100 倍
         goods_item = GoodsItem(name, promo, url, img, int(float(price)*100), prince_type, icons, vid)
         goods_item.sku_id = sku_id
+        goods_item.channel = channel.name
+        goods_item.channel_id = channel.id
         goods_list.append(goods_item)
     except BaseException as e:
       succeed = False
@@ -157,7 +154,7 @@ class JDGoods(object):
     # 返回结果
     return (succeed, goods_list)
 
-  def __crawl_jd_brand_list(self, soup):
+  def __crawl_jd_brand_list(self, soup: BeautifulSoup, channel: Channel) -> (bool, List[Brand]):
     '''从页面中解析产品的品牌数据'''
     succeed = True
     brand_list = []
@@ -167,30 +164,26 @@ class JDGoods(object):
       for brand_list_tag in brand_list_tags:
         display_order = display_order + 1
         # 组装品牌信息
-        brand_item = BrandItem()
-        brand_item.name = safeGetAttr(brand_list_tag.find("a"), "title", "")
-        brand_item.data_initial = safeGetAttr(brand_list_tag, "data-initial", "")
-        brand_item.logo = safeGetAttr(brand_list_tag.find("img"), "src", "")
-        brand_item.link = safeGetAttr(brand_list_tag.find("a"), "href", "")
-        brand_item.dispaly_order = display_order
-        brand_list.append(brand_item)
+        brand = Brand(safeGetAttr(brand_list_tag.find("a"), "title", ""),
+          safeGetAttr(brand_list_tag, "data-initial", ""),
+          safeGetAttr(brand_list_tag.find("img"), "src", ""),
+          safeGetAttr(brand_list_tag.find("a"), "href", ""), display_order)
+        brand.channel = channel.name
+        brand.channel_id = channel.id
+        brand_list.append(brand)
     except BaseException as e:
       succeed = False
       logging.error("Error While Getting Brand List:\n%s" % traceback.format_exc())
     # 返回结果
     return (succeed, brand_list)
 
-  def __crawl_jd_comment_info(self, goods_list):
+  def __crawl_jd_comment_info(self, goods_list: List[GoodsItem]):
     '''爬取京东商品的评论信息'''
     # 组装数据
-    sku_id_list = []
     sku_id_map = {}
-    for idx in range(0, len(goods_list)):
-      goods_item = goods_list[idx]
-      sku_id = goods_item.sku_id
-      sku_id_map[sku_id] = goods_item
-      sku_id_list.append(str(sku_id))
-    sku_ids = ",".join(sku_id_list)
+    for goods_item in goods_list:
+      sku_id_map[goods_item.sku_id] = goods_item
+    sku_ids = ",".join([str(goods_item.sku_id) for goods_item in goods_list])
     tried_count = 0 # 重试的次数
     if len(sku_ids) != 0:
       # 请求评论信息

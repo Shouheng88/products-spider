@@ -21,7 +21,7 @@ class JDDetails(object):
   两个可以同时放在一起来完成，这样更符合真实的应用请求的效果。'''
   def __init__(self):
     super().__init__()
-    self.page_size = 6
+    self.page_size = 5
     self.max_faile_count = 30
     self.total_failed_count = 0
     self.group_count = 50 # 将所有的产品分成 30 组，每天爬取 1 组，大概 2000 条

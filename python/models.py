@@ -117,30 +117,22 @@ class GoodsParams(object):
         '(' + self.store_url + ')\nParameters:' + str(self.parameters) \
         + '\nPackages:'  + str(self.packages)
 
-class BrandItem(object):
+class Brand(object):
   '''商品的品牌信息'''
-  def __init__(self):
+  def __init__(self, name, data_initial, logo, link, dispaly_order):
     super().__init__()
-    self.name = ''          # 品牌名称
-    self.data_initial = ''  # 首字母
-    self.logo = ''          # 品牌 Logo
-    self.link = ''          # 品牌链接
-    self.dispaly_order = 0  # 品牌的顺序
-    self.channel_id = 0     # 品类信息
+    self.id = None
+    self.name = name                    # 品牌名称
+    self.data_initial = data_initial    # 首字母
+    self.logo = logo                    # 品牌 Logo
+    self.link = link                    # 品牌链接
+    self.dispaly_order = dispaly_order  # 品牌的顺序
+    self.channel_id = 0                 # 品类信息
     self.channel = ''
-
-  def get_value_of_filed_name(self, column_name):
-    '''根据数据库列的名称获取对应的字段信息'''
-    if column_name == 'name':
-      return self.name
-    if column_name == 'data_initial':
-      return self.data_initial
-    if column_name == 'logo':
-      return self.logo
-    if column_name == 'link':
-      return self.link
-    if column_name == 'updated_time':
-      return get_current_timestamp()
+    self.remark = None
+    self.lock_version = None
+    self.updated_time = None
+    self.created_time = None
 
 class Category(object):
   '''分类信息封装'''

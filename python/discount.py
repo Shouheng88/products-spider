@@ -141,6 +141,8 @@ class DiscountOperator(object):
     return db.executemany(sql, tuple(values))
 
   def _row_2_discount(self, row) -> Discount:
+    if row == None:
+      return None
     discount = Discount(None, None, None, None, None, None)
     for name, value in row.items():
       setattr(discount, name, value)
@@ -148,6 +150,8 @@ class DiscountOperator(object):
 
   def _rows_2_discounts(self, rows) -> List[Discount]:
     discounts = []
+    if rows == None or len(rows) == 0:
+      return discounts
     for row in rows:
       discount = self._row_2_discount(row)
       discounts.append(discount)
