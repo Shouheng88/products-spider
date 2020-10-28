@@ -75,10 +75,10 @@ JD_HANDLED_CATEGORY_STORE = "../data/京东分类-处理.xlsx"
 # 命令常量值
 CMD_WRITE_JD_CATEGORY           = 'write_category'
 CMD_CRAWL_JD_CATEGORY           = 'crawl_jd_category'
-CMD_CRAWL_JD_GOODS              = 'crawl_jd_goods'
-CMD_CRAWL_JD_DETAIL             = 'crawl_jd_detail'
-CMD_CRAWL_JD_DISCOUNT           = 'crawl_jd_discount'
-CMD_CRAWL_JD_PRICES             = 'crawl_jd_prices'
+CMD_CRAWL_JD_GOODS              = 'crawl_jd_goods'    # 每周 2,4,6 爬取商品信息
+CMD_CRAWL_JD_DETAIL             = 'crawl_jd_detail'   # 每周周日 0:00 开始爬取商品详情信息
+CMD_CRAWL_JD_DISCOUNT           = 'crawl_jd_discount' # 每周周三 16:00 开始爬取折扣信息
+CMD_CRAWL_JD_PRICES             = 'crawl_jd_prices'   # 每月 1,15 号 12:00 检查价格信息
 CMD_CRAWL_HISTORY               = 'crawl_history'
 
 # 环境值常量
