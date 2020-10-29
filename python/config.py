@@ -127,7 +127,16 @@ class GlobalConfig(object):
       self.redis.password = '***REMOVED***'
       self.redis.port = 6379
     elif env == ENV_SERVER_REMOTE:
-      pass
+      self.db.host = '***REMOVED***'
+      self.db.port = ***REMOVED***
+      self.db.database = 'shuma'
+      self.db.user = '***REMOVED***'
+      self.db.password = '***REMOVED***'
+
+      self.redis.host = '***REMOVED***'
+      self.redis.db = 0
+      self.redis.password = '***REMOVED***'
+      self.redis.port = 6379
     else:
       logging.warning('Invalid Environment!')
 

@@ -7,6 +7,7 @@ from typing import *
 
 from goods_operator import *
 from config import *
+from operators import *
 
 class Analyser(object):
   def __init__(self):
@@ -76,7 +77,10 @@ class Analyser(object):
 
 if __name__ == "__main__":
   '''测试入口'''
-  config.set_env(ENV_LOCAL)
+  config.set_env(ENV_SERVER_REMOTE)
+  config.logLevel = logging.DEBUG
   config.config_logging()
-  an = Analyser()
-  an.test()
+  redisOperator.increase_jd_type_index('test')
+  print(redisOperator.get_jd_type_index('test'))
+  # an = Analyser()
+  # an.test()

@@ -83,29 +83,8 @@ class DBOperator(object):
     def __init__(self):
         super().__init__()
 
-    def next_goods_page_of_channels(self, channel_id_list, page_size: int, start_id: int):
-        """
-        从商品列表中读取一页数据来查询商品的价格信息，这里查询到了数据之后就直接返回了，
-        处理数据的时候也不会进行加锁和标记.
-        """
-        channel_ids_str = []
-        for channel_id in channel_id_list:
-            channel_ids_str.append(str(channel_id))
-        channel_ids = ','.join(channel_ids_str)
-        # TODO 不同的服务器上面 channel id 不同，所以不应该使用 channel id 作为标志
-        sql = ("SELECT * FROM gt_item WHERE \
-            price != -1 \
-            AND channel_id in (%s) \
-            AND id > %s \
-            ORDER BY id LIMIT %s") % (channel_ids, start_id, page_size)
-        con = self.connect_db()
-        cur = con.cursor()
-        cur.execute(sql)
-        rows = cur.fetchall()
-        return rows
-
     def execute(self, sql):
-        ret = None
+        ret = con = cur = None
         try:
             # logging.debug("execute(): %s\n" % sql)
             con = self.connect_db()
@@ -117,8 +96,8 @@ class DBOperator(object):
             logging.error('Failed fetchall(): %s\n' % traceback.format_exc())
             logging.error('SQL:%s' % sql)
         finally:
-            cur.close()
-            con.close()
+            self._safe_closs(cur)
+            self._safe_closs(con)
         return ret
 
     def executemany(self, sql, values: tuple):
@@ -126,6 +105,7 @@ class DBOperator(object):
         if len(values) == 0:
             logging.info("executemany(): Empty values")
             return succeed
+        con = cur = None
         try:
             # logging.debug("executemany(): %s\n" % sql)
             con = self.connect_db()
@@ -138,12 +118,12 @@ class DBOperator(object):
             logging.error("Failed While executemany():\n%s" % traceback.format_exc())
             logging.error("SQL:\n%s" % sql)
         finally:
-            cur.close()
-            con.close()
+            self._safe_closs(cur)
+            self._safe_closs(con)
         return succeed
 
     def fetchall(self, sql):
-        rows = None
+        rows = con = cur = None
         try:
             # logging.debug("fetchall(): %s\n" % sql)
             con = self.connect_db()
@@ -154,9 +134,13 @@ class DBOperator(object):
             logging.error('Failed fetchall(): %s\n' % traceback.format_exc())
             logging.error('SQL:%s' % sql)
         finally:
-            cur.close()
-            con.close()
+            self._safe_closs(cur)
+            self._safe_closs(con)
         return rows
+
+    def _safe_closs(self, target):
+        if target != None:
+            target.close()
 
     def connect_db(self):
         '''链接数据库'''
