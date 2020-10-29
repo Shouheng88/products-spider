@@ -35,8 +35,8 @@ MAX_LENGTH_OF_GOODS_PACKAGES    = 2800
 # 0 2 * * * sh /home/box_admin_wsh/.tools/redis_backup.sh
 # 0 0 * * 2,4,6 /bin/bash /home/box_admin_wsh/shuma/shell/run_prod.sh start crawl_jd_goods
 # 0 12 1,15 * * /bin/bash /home/box_admin_wsh/shuma/shell/run_prod.sh start crawl_jd_prices
-# 0 20 * * * /bin/bash /home/box_admin_wsh/shuma/shell/run_prod.sh start crawl_jd_detail
-# 0 16 * * 1,3,5 /bin/bash /home/box_admin_wsh/shuma/shell/run_prod.sh start crawl_jd_discount
+# 0 16 * * * /bin/bash /home/box_admin_wsh/shuma/shell/run_prod.sh start crawl_jd_detail
+# 0 8 * * 1,3,5 /bin/bash /home/box_admin_wsh/shuma/shell/run_prod.sh start crawl_jd_discount
 CMD_WRITE_JD_CATEGORY           = 'write_category'
 CMD_CRAWL_JD_CATEGORY           = 'crawl_jd_category'
 CMD_CRAWL_JD_GOODS              = 'crawl_jd_goods'    # 每周 2,4,6 爬取商品信息

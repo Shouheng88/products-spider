@@ -23,6 +23,7 @@ class JDDetails(object):
   两个可以同时放在一起来完成，这样更符合真实的应用请求的效果。'''
   def __init__(self):
     super().__init__()
+    self.task_name = 'JD:DETAIL'
     self.page_size = 5
     self.max_faile_count = 30
     self.total_failed_count = 0
@@ -32,7 +33,7 @@ class JDDetails(object):
   def crawl(self):
     '''爬取商品的详情信息，设计的逻辑同商品的列表页面'''
     job_no = start_id = item_count = 0
-    type_index = int(redis.get_jd_type_index('details')) % self.group_count
+    type_index = redis.get_cursor_of_task(self.task_name, 1) % self.group_count
     while True:
       goods_list = go.next_page_to_handle_prameters(SOURCE_JINGDONG, self.page_size, start_id, type_index, self.group_count)
       if len(goods_list) == 0: # 表示没有需要爬取参数的任务了
@@ -49,7 +50,7 @@ class JDDetails(object):
       time.sleep(random.random() * CRAWL_SLEEP_TIME_INTERVAL) # 休眠一定时间
     logging.info(">>>> Crawling Details Job Finished: [%d] jobs, [%d] items done, index [%d]. <<<" % (job_no, item_count, type_index))
     send_email('京东详情爬虫【完成】报告', '[%d] jobs [%d] items done, index [%d]' % (job_no, item_count, type_index))
-    redis.increase_jd_type_index('details')
+    redis.mark_task_as_done(self.task_name)
 
   def __crawl_goods_items(self, goods_list: List[GoodsItem]):
     '''爬取商品的信息'''
@@ -68,6 +69,7 @@ class JDDetails(object):
           return False
         logging.error('Error while crawling goods details:\n%s' % traceback.format_exc())
         logging.error("HEADER:%s" % headers)
+        logging.debug('HTML:%s' % html)
         time.sleep(random.random()*CRAWL_SLEEP_TIME_SHORT) # 小憩一会儿
     return True
 

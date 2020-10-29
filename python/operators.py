@@ -175,6 +175,32 @@ class RedisOperator(object):
             if price == None:
                 self.r.hset(name, str(d), p)
 
+    def get_cursor_of_task(self, task_name: str, days_span: int = 2):
+        '''获取任务的 id '''
+        self._connect_redis()
+        cursor = self.r.get('TASK:CRAWL:CURSOR:%s' % task_name) # 获取当前的游标
+        if cursor == None:
+            current_cursor = 0
+        else:
+            cursor = int(cursor)
+            # 如果之前有没有完成的任务，先完成那些任务
+            for c in range(max(0, cursor-20), cursor): 
+                is_done = bool(self.r.getbit('TASK:CRAWL:DONE:%s' % task_name, c))
+                if not is_done:
+                    handling_time = int(self.r.hget('TASK:CRAWL:TIME:%s' % task_name, str(c)))
+                    if (get_current_timestamp()-handling_time)//(24*60*60*days_span) > 0: # 处理了两天没有完成
+                        self.r.hset('TASK:CRAWL:TIME:%s' % task_name, str(c), str(get_current_timestamp()))
+                        return c
+            current_cursor = cursor+1
+        # 没有未完成的任务
+        self.r.set('TASK:CRAWL:CURSOR:%s' % task_name, str(current_cursor))
+        self.r.hset('TASK:CRAWL:TIME:%s' % task_name, str(current_cursor), str(get_current_timestamp()))
+        return current_cursor
+
+    def mark_task_as_done(self, task_name: str, cursor: int):
+        '''标记指定的任务为完成状态'''
+        self.r.setbit('TASK:CRAWL:DONE:%s' % task_name, cursor, True)
+
     def get_jd_type_index(self, type_name: str):
         '''获取京东的参数的索引'''
         self._connect_redis()

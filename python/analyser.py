@@ -87,4 +87,9 @@ class Analyser(object):
 
 if __name__ == "__main__":
   '''测试入口'''
-  pass
+  config.set_env(ENV_LOCAL)
+  config.logLevel = logging.DEBUG
+  config.config_logging()
+  cursor = redisOperator.get_cursor_of_task('TEST')
+  print(cursor)
+  redisOperator.mark_task_as_done('TEST', cursor)
