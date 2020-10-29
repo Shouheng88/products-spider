@@ -43,6 +43,22 @@ class GoodsOperator(object):
       self._batch_insert_goods(new_goods_map)
     return succeed
 
+  def next_goods_page(self, source: int, page_size: int, start_id: int) -> List[GoodsItem]:
+    """从商品列表中读取一页数据来查询商品的价格信息，"""
+    sql = ("SELECT * FROM gt_item WHERE price != -1 AND source = %s AND id > %s ORDER BY id LIMIT %s") % (source, start_id, page_size)
+    rows = db.fetchall(sql)
+    return self._rows_2_models(rows)
+
+  def update_goods_list_as_sold_out(self, goods_list: List[GoodsItem]):
+    '''将指定的产品列表标记为下架状态'''
+    ids = ','.join([str(goods_item.id) for goods_item in goods_list])
+    if len(ids.strip()) == 0:
+        logging.info("Empty Goods Id List.")
+        return False
+    sql = "UPDATE gt_item SET price = -1, updated_time = %s WHERE id IN ( %s )" % (str(get_current_timestamp()), ids)
+    ret = db.execute(sql)
+    return ret != None
+
   def _batch_insert_goods(self, new_goods_map: Dict[str, GoodsItem]):
     '''向数据库中批量插入记录'''
     sql = "INSERT INTO gt_item (\

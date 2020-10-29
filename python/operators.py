@@ -159,22 +159,6 @@ class DBOperator(object):
             con.close()
         return rows
 
-    def next_goods_page(self, source: int, page_size: int, start_id: int):
-        """
-        从商品列表中读取一页数据来查询商品的价格信息，这里查询到了数据之后就直接返回了，
-        处理数据的时候也不会进行加锁和标记.
-        """
-        sql = ("SELECT * FROM gt_item WHERE \
-            price != -1 \
-            AND source = %s \
-            AND id > %s \
-            ORDER BY id LIMIT %s") % (source, start_id, page_size)
-        con = self.connect_db()
-        cur = con.cursor()
-        cur.execute(sql)
-        rows = cur.fetchall()
-        return rows
-
     def next_goods_page_without_source(self, page_size: int, start_id: int):
         '''按页取商品数据'''
         sql = ("SELECT * FROM gt_item WHERE \
@@ -230,32 +214,6 @@ class DBOperator(object):
         cur.execute(sql)
         rows = cur.fetchall()
         return rows
-
-    def update_goods_list_as_sold_out(self, goods_list):
-        '''将指定的产品列表标记为下架状态'''
-        succeed = True
-        id_list = []
-        for good_item in goods_list:
-            id_list.append(str(good_item[GOODS_ID_ROW_INDEX]))
-        ids = ','.join(id_list)
-        if len(ids.strip()) == 0:
-            logging.info("Empty Goods Id List.")
-            return False
-        sql = "UPDATE gt_item SET price = -1, updated_time = %s WHERE id IN ( %s )" % (str(get_current_timestamp()), ids)
-        try:
-            con = self.connect_db()
-            cur = con.cursor()
-            cur.execute(sql)
-            con.commit()
-        except:
-            succeed = False
-            logging.error("Failed While Batch Update Sold Out:\n%s" % traceback.format_exc())
-            logging.error("SQL:\n%s" % sql)
-            con.rollback()
-        finally:
-            cur.close()
-            con.close()
-        return succeed
 
     def execute(self, sql):
         ret = None

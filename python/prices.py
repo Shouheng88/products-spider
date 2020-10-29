@@ -7,11 +7,13 @@ import re
 import time
 import random
 import traceback
+from typing import *
 
 from operators import dBOperator as db
 from models import *
 from utils import *
 from config import *
+from goods_operator import *
 
 class JDPrices(object):
   '''京东的商品价格查询，价格查询分为独立的任务进行'''
@@ -33,16 +35,16 @@ class JDPrices(object):
       except BaseException as e:
         logging.error("Faile to get number from param: %s" % start_id_)
     while True:
-      goods_list = db.next_goods_page(SOURCE_JINGDONG, self.page_size, start_id)
+      goods_list = go.next_goods_page(SOURCE_JINGDONG, self.page_size, start_id)
       if len(goods_list) == 0: # 表示可能是数据加锁的时候失败了
         break
-      item_count = item_count + len(goods_list)
-      start_id = goods_list[len(goods_list)-1][GOODS_ID_ROW_INDEX]
-      job_no = job_no + 1
+      item_count += len(goods_list)
+      start_id = goods_list[len(goods_list)-1].id
+      job_no += 1
       logging.info('>>>> Crawling Prices: job[%d], starter[%d], [%d] items done. <<<<' % (job_no, start_id, item_count))
-      succeed = self.__crawl_prices(goods_list)
+      succeed = self._crawl_prices(goods_list)
       if not succeed:
-        self.total_failed_count = self.total_failed_count + 1
+        self.total_failed_count += 1
         if self.total_failed_count > self.max_fail_count:
           # 同时输出 start_id 便于下次从失败中恢复
           logging.error(">>>> Crawling Prices Job Stopped Due to Fatal Error: job[%d], starter[%d], [%d] items done. <<<<" % (job_no, start_id, item_count))
@@ -53,25 +55,21 @@ class JDPrices(object):
     logging.info(">>>> Crawling Prices Job Finished: [%d] jobs [%d] items done. <<<<" % (job_no, item_count))
     send_email('京东价格爬虫【完成】报告', '[%d] jobs [%d] items done' % (job_no, item_count))
 
-  def __crawl_prices(self, goods_list):
+  def _crawl_prices(self, goods_list: List[GoodsItem]):
     '''批量爬取商品的价格信息，主要用来查找商品的下架状态，如果下架了，就将其标记为下架'''
     succeed = True
     try:
-      soldout_list = self.__crawl_basic_prices(goods_list)
+      soldout_list = self._crawl_basic_prices(goods_list)
       if len(soldout_list) != 0:
-        succeed = db.update_goods_list_as_sold_out(soldout_list) # 更新到数据库
+        succeed = go.update_goods_list_as_sold_out(soldout_list) # 更新到数据库
     except BaseException as e:
       logging.error("Eror while crawl prices:\n%s" % traceback.format_exc())
       succeed = False
     return succeed
 
-  def __crawl_basic_prices(self, goods_list):
+  def _crawl_basic_prices(self, goods_list: List[GoodsItem]):
     '''查询商品的基础价格信息，批量请求，用来检查商品是否已经被下架了'''
-    skuid_list = []
-    for idx in range(0, len(goods_list)):
-      skuid = goods_list[idx][GOODS_SKU_ID_ROW_INDEX]
-      skuid_list.append(str(skuid))
-    sku_ids = ','.join(skuid_list)  
+    sku_ids = ','.join([str(goods_item.sku_id) for goods_item in goods_list])  
     prices_json = requests.get("http://p.3.cn/prices/mgets?skuIds=" + sku_ids, headers=get_request_headers()).text
     prices = json.loads(prices_json)
     soldout_list = [] # 已下架的商品列表

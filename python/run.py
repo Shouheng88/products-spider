@@ -85,6 +85,8 @@ def main(argv):
         elif cmd == CMD_CRAWL_HISTORY: # 爬取商品的历史价格信息
             print('Start to crawl price histories, starter[%s] ...' % param)
             ManmanBuy().crawl()
+        else:
+            __show_invalid_command('unknown command')
 
 def __show_invalid_command(info: str):
     print('Error: Unrecognized command: %s' % info)
