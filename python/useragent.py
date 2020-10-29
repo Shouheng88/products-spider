@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+from fake_useragent import UserAgent
+
 # 所有的 useragent
 USER_AGENTS = [
   # "Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10_6_8; en-us) AppleWebKit/534.50 (KHTML, like Gecko) Version/5.1 Safari/534.50",
@@ -118,3 +120,12 @@ DETAIL_USER_AGENTS = [
   'Mozilla/5.0 (compatible; MSIE 10.0; Macintosh; Intel Mac OS X 10_7_3; Trident/6.0)', 
   'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/27.0.1453.93 Safari/537.36'
 ]
+
+if __name__ == '__main__':
+    ua = UserAgent(cache=False)
+    n = 0
+    while n<100:
+      agent = ua.random
+      if agent.find('Windows NT 10') != -1:
+        print(agent)
+      n += 1

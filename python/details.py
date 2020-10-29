@@ -57,6 +57,7 @@ class JDDetails(object):
     for goods_item in goods_list:
       try:
         (goods_params, html, headers) = self.__crawl_from_page(goods_item)
+        time.sleep(random.random()*CRAWL_SLEEP_TIME_MIDLLE)
         succeed = go.update_goods_prameters(goods_item, goods_params) # 更新到数据库当中
         if not succeed:
           raise Exception('Nothing parsed!')

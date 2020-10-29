@@ -9,8 +9,8 @@ from utils import *
 
 # 爬虫相关的配置
 # 时间配置
-CRAWL_SLEEP_TIME_INTERVAL         = 20  # 爬虫的睡眠时间（秒），会使用 random 进行计算，平均时间是一般
-CRAWL_SLEEP_TIME_MIDLLE           = 14   # 爬虫的中等长度的睡眠时间（秒）
+CRAWL_SLEEP_TIME_INTERVAL         = 30  # 爬虫的睡眠时间（秒），会使用 random 进行计算，平均时间是一般
+CRAWL_SLEEP_TIME_MIDLLE           = 15   # 爬虫的中等长度的睡眠时间（秒）
 CRAWL_SLEEP_TIME_SHORT            = 7   # 爬虫的较短长度的睡眠时间（秒）
 CRAWL_SLEEP_TIME_LONG             = 30*60
 # 时间配置
