@@ -82,6 +82,12 @@ class JDDiscount(object):
             if antiSpider == True:
               logging.error("Errir while request discount, invoked anit-spider. \nREQ:%s\nHEADERS:%s\nRESP:%s" % (req, headers, resp_text))
               self.total_failed_count = self.total_failed_count + 1 # 错误次数+1，触发了爬虫的时候次数也加 1
+               # 把无效的 ua 从列表中剔除
+              ua = headers.get('User-Agent')
+              USER_AGENTS.remove(ua)
+              logging.debug("UA LEFT %d" % len(USER_AGENTS))
+              if len(USER_AGENTS) == 0:
+                return # 没有可用的 ua 了
               time.sleep(CRAWL_SLEEP_TIME_LONG) # 触发了反爬虫，睡眠一定时间
             continue # 跳过
           for coupon in coupons:

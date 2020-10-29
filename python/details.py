@@ -25,7 +25,7 @@ class JDDetails(object):
     super().__init__()
     self.task_name = 'JD:DETAIL'
     self.page_size = 5
-    self.max_faile_count = 30
+    self.max_faile_count = 50
     self.total_failed_count = 0
     self.group_count = 50 # 将所有的产品分成 30 组，每天爬取 1 组，大概 2000 条
     # self.ua = []
@@ -45,7 +45,8 @@ class JDDetails(object):
       succeed = self.__crawl_goods_items(goods_list) # 爬取某个商品的条目
       if not succeed:
         logging.error(">>>> Crawling Goods Details Stopped Due to Fatal Error: job[%d], starter[%d], index[%d], [%d] items done. <<<<" % (job_no, start_id, type_index, item_count))
-        send_email('京东详情爬虫【异常】报告', '[%d] jobs [%d] items done, starter [%d], index [%d]' % (job_no, item_count, start_id, type_index), config.log_filename)
+        send_email('京东详情爬虫【异常】报告', '[%d] jobs [%d] items done, starter [%d], index [%d], ua left [%d]'\
+          % (job_no, item_count, start_id, type_index, len(DETAIL_USER_AGENTS)), config.log_filename)
         return
       time.sleep(random.random() * CRAWL_SLEEP_TIME_INTERVAL) # 休眠一定时间
     logging.info(">>>> Crawling Details Job Finished: [%d] jobs, [%d] items done, index [%d]. <<<" % (job_no, item_count, type_index))
@@ -57,8 +58,8 @@ class JDDetails(object):
     for goods_item in goods_list:
       try:
         (goods_params, html, headers) = self.__crawl_from_page(goods_item)
-        time.sleep(random.random()*CRAWL_SLEEP_TIME_MIDLLE)
         succeed = go.update_goods_prameters(goods_item, goods_params) # 更新到数据库当中
+        time.sleep(random.random()*CRAWL_SLEEP_TIME_MIDLLE)
         if not succeed:
           raise Exception('Nothing parsed!')
         # else:
@@ -68,10 +69,16 @@ class JDDetails(object):
         self.total_failed_count += 1
         if self.total_failed_count > self.max_faile_count:
           return False
+        # 把无效的 ua 从列表中剔除
+        ua = headers.get('User-Agent')
+        DETAIL_USER_AGENTS.remove(ua)
+        logging.debug("UA LEFT %d" % len(DETAIL_USER_AGENTS))
+        if len(DETAIL_USER_AGENTS) == 0:
+          return False
         logging.error('Error while crawling goods details:\n%s' % traceback.format_exc())
         logging.error("HEADER:%s" % headers)
         logging.debug('HTML:%s' % html)
-        time.sleep(random.random()*CRAWL_SLEEP_TIME_SHORT) # 小憩一会儿
+        time.sleep(random.random()*CRAWL_SLEEP_TIME_MIDLLE) # 小憩一会儿
     return True
 
   def __crawl_from_page(self, goods_item: GoodsItem):

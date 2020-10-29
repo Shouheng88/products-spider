@@ -12,7 +12,7 @@ from utils import *
 CRAWL_SLEEP_TIME_INTERVAL         = 30  # 爬虫的睡眠时间（秒），会使用 random 进行计算，平均时间是一般
 CRAWL_SLEEP_TIME_MIDLLE           = 15   # 爬虫的中等长度的睡眠时间（秒）
 CRAWL_SLEEP_TIME_SHORT            = 7   # 爬虫的较短长度的睡眠时间（秒）
-CRAWL_SLEEP_TIME_LONG             = 30*60
+CRAWL_SLEEP_TIME_LONG             = 10*60
 # 时间配置
 CHANNEL_HANDLE_TIMEOUT_IN_MINUTE  = 2     # 分类处理的超时时间，超时完不成则认为失败
 GOODS_HANDLE_TIMEOUT_IN_MINUTE    = 2     # 产品超时时间，同上

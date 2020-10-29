@@ -122,10 +122,13 @@ DETAIL_USER_AGENTS = [
 ]
 
 if __name__ == '__main__':
-    ua = UserAgent(cache=False)
-    n = 0
-    while n<100:
-      agent = ua.random
-      if agent.find('Windows NT 10') != -1:
-        print(agent)
-      n += 1
+    # ua = UserAgent(cache=False)
+    # n = 0
+    # while n<100:
+    #   agent = ua.random
+    #   if agent.find('Windows NT 10') != -1:
+    #     print(agent)
+    #   n += 1
+    print(len(DETAIL_USER_AGENTS))
+    DETAIL_USER_AGENTS.remove('Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/27.0.1453.93 Safari/537.36')
+    print(len(DETAIL_USER_AGENTS))
