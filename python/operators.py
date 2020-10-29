@@ -13,6 +13,7 @@ import pymysql
 import pymysql.cursors
 import traceback
 from redis import StrictRedis, ConnectionPool
+from typing import *
 
 from models import GoodsItem
 from utils import *
@@ -81,41 +82,6 @@ class ExcelOperator(object):
 class DBOperator(object):
     def __init__(self):
         super().__init__()
-
-    def next_goods_page_without_source(self, page_size: int, start_id: int):
-        '''按页取商品数据'''
-        sql = ("SELECT * FROM gt_item WHERE \
-            price != -1 \
-            AND id > %s \
-            ORDER BY id LIMIT %s") % (start_id, page_size)
-        con = self.connect_db()
-        cur = con.cursor()
-        cur.execute(sql)
-        rows = cur.fetchall()
-        return rows
-
-    def next_goods_page_for_icons(self, source: int, icons, page_size: int, start_id: int, type_index: int, group_count:int):
-        """
-        从商品列表中读取一页数据来查询商品的价格信息，这里查询到了数据之后就直接返回了，
-        处理数据的时候也不会进行加锁和标记.
-        """
-        sql_like_parts = []
-        for filter in icons: # 增加 icons 条件进行过滤，只对折扣商品进行检索
-            sql_like_parts.append("icons LIKE '%" + filter +  "%'")
-        sql_like = ' OR '.join(sql_like_parts)
-        sql = ("SELECT * FROM gt_item WHERE \
-            price != -1 \
-            AND source = %s \
-            AND id > %s \
-            AND id %% %s = %s \
-            AND (%s) \
-            ORDER BY id LIMIT %s") % (source, start_id, group_count, type_index, sql_like, page_size)
-        logging.debug(sql)
-        con = self.connect_db()
-        cur = con.cursor()
-        cur.execute(sql)
-        rows = cur.fetchall()
-        return rows
 
     def next_goods_page_of_channels(self, channel_id_list, page_size: int, start_id: int):
         """
@@ -204,32 +170,28 @@ class RedisOperator(object):
         self.connected = False
         self.r: StrictRedis = None
 
-    def add_goods_price_histories(self, goods_list):
+    def add_goods_price_histories(self, goods_list: List[GoodsItem]):
         '''添加商品的历史价格信息'''
         self._connect_redis()
-        today = get_timestamp_of_today_start()
-        rows = dBOperator.get_goods_list_from_database(goods_list)
-        for row in rows:
-            goods_id = row[GOODS_ID_ROW_INDEX]
-            price = row[GOODS_PRICE_ROW_INDEX]
-            name = 'GOODS:PRICE:HISTORY:%d' % goods_id
-            self.r.hset(name, str(today), price)
+        today = str(get_timestamp_of_today_start())
+        for goods_item in goods_list:
+            name = 'GOODS:PRICE:HISTORY:%d' % goods_item.id
+            self.r.hset(name, today, goods_item.price)
 
-    def add_prices(self, goods_item, price_map):
+    def add_prices(self, goods_item: GoodsItem, price_map: Dict[int, int]):
         '''
         添加历史价格
         添加历史价格，不过有个问题，这里价格是统计了折扣之后的结果，所以可能有问题，
         这里计算出来的价格也就当作一个补充吧，即项目正式开启爬虫之前进行的数据抓取
         '''
-        goods_id = goods_item[GOODS_ID_ROW_INDEX]
-        name = 'GOODS:PRICE:HISTORY:%d' % goods_id
         self._connect_redis()
-        for d,p in price_map.items():
+        name = 'GOODS:PRICE:HISTORY:%d' % goods_item.id
+        for d, p in price_map.items():
             price = self.r.hget(name, str(d))
             if price == None:
                 self.r.hset(name, str(d), p)
 
-    def get_jd_type_index(self, type_name):
+    def get_jd_type_index(self, type_name: str):
         '''获取京东的参数的索引'''
         self._connect_redis()
         index = self.r.get('jd_type_index_%s' % type_name)
@@ -237,7 +199,7 @@ class RedisOperator(object):
             index = 0
         return index
 
-    def increase_jd_type_index(self, type_name):
+    def increase_jd_type_index(self, type_name: str):
         '''京东的参数索引+1'''
         self._connect_redis()
         index = self.r.get('jd_type_index_%s' % type_name)

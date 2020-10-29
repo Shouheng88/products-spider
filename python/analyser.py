@@ -3,8 +3,9 @@
 
 import jieba
 import json
+from typing import *
 
-from operators import dBOperator as db
+from goods_operator import *
 from config import *
 
 class Analyser(object):
@@ -20,14 +21,14 @@ class Analyser(object):
     start_id = 30000
     while True:
       # 不对各个品类的频率进行细化统计
-      goods_list = db.next_goods_page_without_source(self.page_size, start_id)
+      goods_list = go.next_goods_page_without_source(self.page_size, start_id)
       if len(goods_list) == 0:
         break
       item_count = item_count+len(goods_list)
       job_no = job_no+1
       logging.info(">>>> Analysing Goods: job[%d], starter[%d], [%d] itemd done <<<<" % (job_no, start_id, item_count))
       for goods_item in goods_list:
-        name = goods_item[GOODS_NAME_ROW_INDEX]
+        name = goods_item.name
         # 将特殊的字符替换为空格
         for ch in '!"#$%&()*+,-./:;<=>?@[\\]^_‘{|}~':
           name = name.replace(ch, " ")
@@ -50,15 +51,15 @@ class Analyser(object):
     job_no = start_id = item_count = 0
     while True:
       # 不对各个品类的频率进行细化统计
-      goods_list = db.next_goods_page_without_source(self.page_size, start_id)
+      goods_list = go.next_goods_page_without_source(self.page_size, start_id)
       if len(goods_list) == 0:
         break
       item_count = item_count+len(goods_list)
       job_no = job_no+1
       logging.info(">>>> Analysing Goods: job[%d], starter[%d], [%d] itemd done <<<<" % (job_no, start_id, item_count))
       for goods_item in goods_list:
-        if goods_item[GOODS_PARAMETER_ROW_INDEX] != None:
-          params = eval(goods_item[GOODS_PARAMETER_ROW_INDEX])
+        if goods_item.parameters != None:
+          params = eval(goods_item.parameters)
           for name, value in params.items():
             if self.p_map.get(name) == None:
               self.p_map[name] = []

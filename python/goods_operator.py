@@ -29,7 +29,7 @@ class GoodsOperator(object):
     new_goods_map = {}
     for goods_item in goods_list:
       new_goods_map[goods_item.link] = goods_item
-    existed_goods_list = self._get_existed_goods(goods_list)
+    existed_goods_list = self.get_existed_goods(goods_list)
     map_2_update = {} # 已经存在于数据库中的记录 => 用于更新
     for existed_goods in existed_goods_list:
       if existed_goods.link in new_goods_map:
@@ -97,6 +97,39 @@ class GoodsOperator(object):
     ret = db.execute(sql)
     return ret == 1
 
+  def next_goods_page_without_source(self, page_size: int, start_id: int) -> List[GoodsItem]:
+    '''按页取商品数据'''
+    sql = ("SELECT * FROM gt_item WHERE price != -1 AND id > %s ORDER BY id LIMIT %s") % (start_id, page_size)
+    rows = db.fetchall(sql)
+    return self._rows_2_models(rows)
+
+  def next_goods_page_for_icons(self, source: int, icons, page_size: int, start_id: int, type_index: int, group_count:int) -> List[GoodsItem]:
+    """
+    从商品列表中读取一页数据来查询商品的价格信息，这里查询到了数据之后就直接返回了，
+    处理数据的时候也不会进行加锁和标记.
+    """
+    # 增加 icons 条件进行过滤，只对折扣商品进行检索
+    sql_like = ' OR '.join(["icons LIKE '%" + filter +  "%'" for filter in icons])
+    sql = ("SELECT * FROM gt_item WHERE price != -1 AND source = %s \
+      AND id > %s AND id %% %s = %s AND (%s) ORDER BY id LIMIT %s") \
+      % (source, start_id, group_count, type_index, sql_like, page_size)
+    rows = db.fetchall(sql)
+    return self._rows_2_models(rows)
+
+  def next_goods_page_of_channels(self, channel_id_list: List[int], page_size: int, start_id: int) -> List[GoodsItem]:
+    """
+    从商品列表中读取一页数据来查询商品的价格信息，这里查询到了数据之后就直接返回了，
+    处理数据的时候也不会进行加锁和标记.
+    """
+    channel_ids = ','.join(map(str, channel_id_list))
+    sql = ("SELECT * FROM gt_item WHERE \
+        price != -1 \
+        AND channel_id in (%s) \
+        AND id > %s \
+        ORDER BY id LIMIT %s") % (channel_ids, start_id, page_size)
+    rows = db.fetchall(sql)
+    return self._rows_2_models(rows)
+
   def _batch_insert_goods(self, new_goods_map: Dict[str, GoodsItem]):
     '''向数据库中批量插入记录'''
     sql = "INSERT INTO gt_item (\
@@ -142,7 +175,7 @@ class GoodsOperator(object):
     sql_map['sql'] = sql
     return sql_map
 
-  def _get_existed_goods(self, goods_list: List[GoodsItem]) -> List[GoodsItem]:
+  def get_existed_goods(self, goods_list: List[GoodsItem]) -> List[GoodsItem]:
     '''从数据库中查询指定的商品列表的商品信息'''
     val = ','.join(["'%s'" % goods.link for goods in goods_list])
     sql = "SELECT * FROM gt_item WHERE link IN (%s)" % val

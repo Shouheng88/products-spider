@@ -20,18 +20,6 @@ PRICES_HANDLE_TIMEOUT_IN_MINUTE   = 2
 # 页数配置
 PRICE_HISTORY_HANDLE_CHANNELS     = [68]
 
-# 商品的列索引
-GOODS_ID_ROW_INDEX              = 0
-GOODS_NAME_ROW_INDEX            = 1
-GOODS_LINK_ROW_INDEX            = 3
-GOODS_PRICE_ROW_INDEX           = 5
-GOODS_PARAMETER_ROW_INDEX       = 9
-GOODS_PACKAGE_ROW_INDEX         = 10
-GOODS_SKU_ID_ROW_INDEX          = 11
-GOODS_VEN_ID_ROW_INDEX          = 13
-GOODS_CHANNEL_ID_ROW_INDEX      = 22
-GOODS_LOCK_VERSION_ROW_INDEX    = 25     # lock version
-
 # 数据源配置，用来区分不同的来源的数据
 SOURCE_JINGDONG                 = 0
 SOURCE_TAOBAO                   = 1

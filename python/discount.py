@@ -7,7 +7,7 @@ import re
 import time
 import random
 import traceback
-from typing import List
+from typing import *
 
 from operators import redisOperator as redis
 from operators import dBOperator as db
@@ -15,6 +15,7 @@ from models import *
 from utils import *
 from config import *
 from channels import *
+from goods_operator import *
 
 class JDDiscount(object):
   def __init__(self):
@@ -34,12 +35,12 @@ class JDDiscount(object):
       except BaseException as e:
         logging.error("Faile to get number from param: %s" % start_id_)
     while True:
-      goods_list = db.next_goods_page_for_icons(SOURCE_JINGDONG, ('-', '减', '券'), self.per_page_size, start_id, type_index, self.group_count) # 拉取一页数据
+      goods_list = go.next_goods_page_for_icons(SOURCE_JINGDONG, ('-', '减', '券'), self.per_page_size, start_id, type_index, self.group_count) # 拉取一页数据
       if len(goods_list) == 0: # 表示可能是数据加锁的时候失败了
         break
-      item_count = item_count + len(goods_list)
-      start_id = goods_list[len(goods_list)-1][GOODS_ID_ROW_INDEX]
-      job_no = job_no + 1
+      item_count += len(goods_list)
+      start_id = goods_list[len(goods_list)-1].id
+      job_no += 1
       self.__crawl_goods_discount(goods_list)
       logging.info('>>>> Crawling Discount: job[%d], starter[%d], index[%d], [%d] items done. <<<<' % (job_no, start_id, type_index, item_count))
       if self.total_failed_count > self.max_faile_count: # 每批次的任务结束之后就检测一下
@@ -53,12 +54,12 @@ class JDDiscount(object):
     send_email('京东折扣爬虫【完成】报告', '[%d] jobs [%d] items done, index[%d]' % (job_no, item_count, type_index))
     redis.increase_jd_type_index('discount')
 
-  def __crawl_goods_discount(self, goods_list):
+  def __crawl_goods_discount(self, goods_list: List[GoodsItem]):
     '''查询商品的折扣信息'''
     # 获取 channel 和 cat 信息
     channel_id_list = []
     for goods_item in goods_list:
-      channel_id_list.append(goods_item[GOODS_CHANNEL_ID_ROW_INDEX])
+      channel_id_list.append(goods_item.channel_id)
     channels = co.get_channels_of_ids(channel_id_list)
     cat_map = {}
     for channel in channels:
@@ -66,10 +67,10 @@ class JDDiscount(object):
     # 循环抓取每个商品条目
     discount_map = {}
     for goods_item in goods_list:
-      cat = cat_map.get(goods_item[GOODS_CHANNEL_ID_ROW_INDEX])
+      cat = cat_map.get(goods_item.channel_id)
       if cat != None:
         req = "http://cd.jd.com/promotion/v2?skuId=%s&area=%s&venderId=%s&cat=%s" % (
-          goods_item[GOODS_SKU_ID_ROW_INDEX], self._random_discount_area(), goods_item[GOODS_VEN_ID_ROW_INDEX], cat)
+          goods_item.sku_id, self._random_discount_area(), goods_item.vender_id, cat)
         try:
           headers = get_request_headers()
           resp_text = requests.get(req, headers=headers).text
@@ -86,7 +87,7 @@ class JDDiscount(object):
             start_time = get_starter_timestamp_of_day(coupon.get('beginTime'))
             end_time = get_starter_timestamp_of_day(coupon.get('endTime'))
             batch_id = coupon.get('batchId')
-            discount = Discount(goods_item[GOODS_ID_ROW_INDEX], batch_id, coupon.get('quota')*100, coupon.get('trueDiscount')*100, start_time, end_time)
+            discount = Discount(goods_item.id, batch_id, coupon.get('quota')*100, coupon.get('trueDiscount')*100, start_time, end_time)
             discount_map[batch_id] = discount
         except BaseException as e:
           self.total_failed_count = self.total_failed_count + 1 # 错误次数+1

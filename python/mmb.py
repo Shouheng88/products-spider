@@ -6,10 +6,13 @@ import traceback
 import logging
 import requests
 import json
+from typing import *
+
 from config import *
 from utils import *
 from operators import dBOperator as db
 from operators import redisOperator as redis
+from goods_operator import *
 
 class ManmanBuy(object):
   def __init__(self):
@@ -28,12 +31,12 @@ class ManmanBuy(object):
       except BaseException as e:
         logging.error("Faile to get number from param: %s" % start_id_)
     while True:
-      goods_list = db.next_goods_page_of_channels(PRICE_HISTORY_HANDLE_CHANNELS, self.page_size, start_id) # 拉取一页数据
+      goods_list = go.next_goods_page_of_channels(PRICE_HISTORY_HANDLE_CHANNELS, self.page_size, start_id) # 拉取一页数据
       if len(goods_list) == 0: # 表示可能是数据加锁的时候失败了
         break
-      item_count = item_count + len(goods_list)
-      start_id = goods_list[len(goods_list)-1][GOODS_ID_ROW_INDEX]
-      job_no = job_no + 1
+      item_count += len(goods_list)
+      start_id = goods_list[len(goods_list)-1].id
+      job_no += 1
       self._crawl_goods(goods_list)
       logging.info('>>>> Crawling Price History: job[%d], starter[%d], [%d] items done. <<<<' % (job_no, start_id, item_count))
       if self.total_failed_count > self.max_fail_count: # 每批次的任务结束之后就检测一下
@@ -46,13 +49,12 @@ class ManmanBuy(object):
     logging.info(">>>> Crawling Price History Job Finished: [%d] jobs [%d] items done <<<<" % (job_no, item_count))
     send_email('价格历史爬虫【完成】报告', '[%d] jobs [%d] items done' % (job_no, item_count))
 
-  def _crawl_goods(self, goods_list):
+  def _crawl_goods(self, goods_list: List[GoodsItem]):
     '''爬取商品列表'''
     try:
       req_map = {}
       for goods_item in goods_list:
-        link = 'http:' + goods_item[GOODS_LINK_ROW_INDEX]
-        ret = self._request_api(link, req_map)
+        ret = self._request_api('http:' + goods_item.link, req_map)
         date_prices = json.loads(("[%s]" % ret.get('datePrice')).replace(',]', ']'))
         pcice_map = {}
         for data_price in date_prices:
@@ -67,7 +69,7 @@ class ManmanBuy(object):
       self.total_failed_count = self.total_failed_count+1
       time.sleep(random.random()*CRAWL_SLEEP_TIME_MIDLLE)
 
-  def _request_api(self, link, req_map):
+  def _request_api(self, link: str, req_map):
     '''请求 api'''
     url = 'http://tool.manmanbuy.com/history.aspx?DA=1&action=gethistory&url=%s&bjid=&spbh=&cxid=&zkid=&w=350&token=%s' % (link, self.token)
     req_map['REQ'] = url

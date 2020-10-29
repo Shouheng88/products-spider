@@ -98,7 +98,8 @@ class JDGoods(object):
       # 首先将商品列表信息更新数据库当中
       succeed5 = go.batch_insert_or_update_goods(goods_list)
       # 然后将价格历史记录到 Redis 中，Redis 的操作应该放在 DB 之后，因为我们要用到数据库记录的主键
-      redis.add_goods_price_histories(goods_list)
+      existed_goods = go.get_existed_goods(goods_list)
+      redis.add_goods_price_histories(existed_goods)
     else:
       logging.error("ILLEGAL UA:%s" % headers.get("User-Agent"))
     if succeed3 and first_page:
