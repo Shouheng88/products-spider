@@ -20,15 +20,16 @@ from goods_operator import *
 class JDDiscount(object):
   def __init__(self):
     super().__init__()
+    self.task_name = 'JD:DISCOUNT'
     self.max_faile_count = 30
     self.total_failed_count = 0
     self.per_page_size = 5
-    self.group_count = 4 # 要将全部的折扣数据分成多少组，生产约 1w 折扣商品需要爬取，每批次约 2500 条数据需要爬取
+    self.group_count = 20 # 要将全部的折扣数据分成多少组，生产约 1w 折扣商品需要爬取，每批次约 2500 条数据需要爬取
   
   def crawl(self, start_id_ = None):
     '''查询产品的折扣信息'''
     job_no = start_id = item_count = 0
-    type_index = int(redis.get_jd_type_index('discount')) % self.group_count # 折扣的自增 index
+    type_index = redis.get_cursor_of_task(self.task_name, 1) % self.group_count # 折扣的自增 index
     if start_id_ != None:
       try:
         start_id = int(start_id_)
@@ -52,7 +53,7 @@ class JDDiscount(object):
       time.sleep(random.random() * CRAWL_SLEEP_TIME_INTERVAL)
     logging.info(">>>> Crawling Discount Job Finished: [%d] jobs [%d] items done, index[%d] <<<<" % (job_no, item_count, type_index))
     send_email('京东折扣爬虫【完成】报告', '[%d] jobs [%d] items done, index[%d]' % (job_no, item_count, type_index))
-    redis.increase_jd_type_index('discount')
+    redis.mark_task_as_done(self.task_name)
 
   def __crawl_goods_discount(self, goods_list: List[GoodsItem]):
     '''查询商品的折扣信息'''
