@@ -36,9 +36,12 @@ class BrandOperator(object):
         new_brand = new_brands.pop(existed_brand.link) # 移除指定的 key
         list_2_update[existed_brand.id] = new_brand
     # 批量更新
-    self._batch_update_brands(list_2_update)
+    if len(list_2_update) != 0:
+      self._batch_update_brands(list_2_update)
     # 批量插入
-    self._batch_insert_brands(new_brands)
+    if len(new_brands) != 0:
+      self._batch_insert_brands(new_brands)
+    return succeed
 
   def _get_existed_brands(self, brands: List[Brand]) -> List[Brand]:
     val = ','.join(["'" + brand.link + "'" for brand in brands])
@@ -52,13 +55,12 @@ class BrandOperator(object):
     # 拼接 when then 语句
     when_then_map = {} 
     for id, brand in list_2_update.items():
+      brand.updated_time = get_current_timestamp()
       for column_name in ('name', 'data_initial', 'logo', 'link', 'updated_time'):
         when_then = when_then_map.get(column_name)
         if when_then == None:
           when_then = ''
         val = getattr(brand, column_name)
-        if val == None and column_name == 'updated_time': # 更新时间，特殊处理
-          val = get_current_timestamp()
         if isinstance(val, str): # 如果是字符串类型的话，再包一层引号
           val = "'" + val.replace("'", "\\'") + "'"
         when_then = when_then + '\n' + ' WHEN ' + str(id) + ' THEN ' + str(val)

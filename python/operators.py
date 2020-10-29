@@ -79,131 +79,8 @@ class ExcelOperator(object):
         return col_list
 
 class DBOperator(object):
-    '''
-    目前这个数据库的设计方案是按照多进程来设计，如果多线程的话，除非你在应用内部切换 ip
-    否则还是运行在同一个 ip 地址内。容易因为访问量过大被 block. 而如果按照多进程的方案
-    进行设计，那么我们可以自由地进行横向的拓展。甚至，我们可以通过服务器暴露任务给客户端
-    来在客户端上面实现爬虫之后将获取的数据提交到服务器上面。也就是，使用多进程的设计方案
-    拓展起来会容易得多。
-    '''
     def __init__(self):
         super().__init__()
-
-    def get_goods_list_from_database(self, goods_list):
-        '''从数据库中查询指定的商品列表的商品信息'''
-        rows = ()
-        if len(goods_list) == 0:
-            return rows
-        link_list = []
-        for idx in range(0, len(goods_list)):
-            link = goods_list[idx].link
-            link_list.append("'%s'" % link)
-        val = ",".join(link_list)
-        sql = "SELECT * FROM gt_item WHERE link IN (%s)" % val
-        try:
-            con = self.connect_db()
-            cur = con.cursor()
-            cur.execute(sql)
-            rows = cur.fetchall()
-        except:
-            logging.error("Failed When Fetching Goods From Database.")
-            logging.error("SQL:\n%s" % sql)
-        finally:
-            cur.close()
-            con.close()
-        return rows
-
-    def batch_insert_or_update_goods(self, goods_list):
-        '''批量向数据库当中插入数据或者更新数据当中的记录'''
-        links = {}
-        for idx in range(0, len(goods_list)):
-            link = goods_list[idx].link
-            links[link] = goods_list[idx]
-        succeed = True
-        # 从数据库中按照连接查询商品列表
-        rows = self.get_goods_list_from_database(goods_list)
-        sql_map = {}
-        try:
-            con = self.connect_db()
-            cur = con.cursor()
-            # 检索到了数据 => 执行批量更新
-            if len(rows) != 0:
-                list_2_update = {} # 已经存在于数据库中的记录 => 用于更新
-                for row in rows:
-                    id = row[GOODS_ID_ROW_INDEX]
-                    link = row[GOODS_LINK_ROW_INDEX]
-                    if link in links:
-                        existed_goods = links.pop(link) # 移除指定的 key
-                        list_2_update[id] = existed_goods
-                # 执行批量更新操作
-                if len(list_2_update) != 0:
-                    self.__batch_update_goods(list_2_update, cur, sql_map)
-                    # 如果没有需要插入的记录，就提交事务，下面的逻辑走不到了
-                    if len(links) == 0:
-                        con.commit()
-            # 没有检索到数据 => 执行插入操作
-            if len(links) != 0:
-                self.__batch_insert_goods(links, cur, sql_map)
-                con.commit()
-        except BaseException as e:
-            succeed = False
-            logging.error("Failed While Batch Insert: \n%s" % traceback.format_exc())
-            logging.error("SQL:\n%s" % sql_map.get('sql'))
-            # logging.error("VAL:\n%s" % sql_map.get('val'))
-            con.rollback()
-        finally:
-            cur.close()
-            con.close()
-        return succeed
-
-    def __batch_insert_goods(self, link_map, cur, sql_map):
-        '''向数据库中批量插入记录'''
-        values = []
-        sql = "INSERT INTO gt_item (\
-            name, promo, link, image, price, price_type, icons, channel_id,\
-            channel, lock_version, updated_time, created_time, handling_time,source,\
-            sku_id, product_id, comment_count, average_score, good_rate, comment_detail, vender_id\
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
-        for goods_item in link_map.values():
-            values.append((goods_item.name.replace("'", "\'"), goods_item.promo.replace("'", "\'"), goods_item.link, 
-                goods_item.image, goods_item.price, goods_item.price_type,
-                goods_item.icons.replace("'", "\'"), goods_item.channel_id, goods_item.channel,
-                0, int(get_current_timestamp()), int(get_current_timestamp()), 0, SOURCE_JINGDONG, # 将 handling_time 置为 0, souce 置为 0
-                goods_item.sku_id, goods_item.product_id, goods_item.comment_count, 
-                goods_item.average_score, goods_item.good_rate, goods_item.get_comment_detail(), goods_item.venid))
-        val = tuple(values)
-        sql_map['sql'] = sql
-        sql_map['val'] = val
-        cur.executemany(sql, val)
-
-    def __batch_update_goods(self, list_2_update, cur, sql_map):
-        '''向数据库中批量更新记录'''
-        # 拼接 id
-        id_list = []
-        for id in list_2_update.keys():
-            id_list.append(str(id))
-        val_ids = ",".join(id_list)
-        # 拼接 when then 语句
-        when_then_map = {} 
-        for id, goods_item in list_2_update.items():
-            for column_name in ('name', 'promo', 'link', 'image', 'price', 'price_type', 'icons', 'updated_time', \
-                'sku_id', 'product_id', 'comment_count', 'average_score', 'good_rate', 'comment_detail', 'vender_id'):
-                when_then = when_then_map.get(column_name)
-                if when_then == None:
-                    when_then = ''
-                val = goods_item.get_value_of_filed_name(column_name)
-                if isinstance(val, str): # 如果是字符串类型的话，再包一层引号，还要处理 sql 中字符串的 ' 符号
-                    val = "'" + val.replace("'", "\\'") + "'"
-                when_then = when_then + '\n' + ' WHEN ' + str(id) + ' THEN ' + str(val)
-                when_then_map[column_name] = when_then
-        sql_when_then_list = []
-        for column_name, when_then in when_then_map.items():
-            sql_when_then_list.append(column_name + " = CASE id " + when_then + "\n END")
-        sql_when_then = ", \n".join(sql_when_then_list) + " \n"
-        # 拼接最终 sql
-        sql = "UPDATE gt_item SET \n %s WHERE id IN ( %s ) " % (sql_when_then, val_ids)
-        sql_map['sql'] = sql
-        cur.execute(sql)
 
     def update_goods_parames(self, goods_item, goods_params):
         '''更新产品的参数信息'''
@@ -383,6 +260,7 @@ class DBOperator(object):
     def execute(self, sql):
         ret = None
         try:
+            # logging.debug("execute(): %s\n" % sql)
             con = self.connect_db()
             cur = con.cursor()
             ret = cur.execute(sql)
@@ -402,6 +280,7 @@ class DBOperator(object):
             logging.info("executemany(): Empty values")
             return succeed
         try:
+            # logging.debug("executemany(): %s\n" % sql)
             con = self.connect_db()
             cur = con.cursor()
             cur.executemany(sql, tuple(values))
@@ -419,6 +298,7 @@ class DBOperator(object):
     def fetchall(self, sql):
         rows = None
         try:
+            # logging.debug("fetchall(): %s\n" % sql)
             con = self.connect_db()
             cur = con.cursor(cursor=pymysql.cursors.DictCursor)
             cur.execute(sql)

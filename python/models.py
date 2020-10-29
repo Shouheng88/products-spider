@@ -6,8 +6,9 @@ from utils import *
 
 class GoodsItem(object):
   '''产品信息包装类'''
-  def __init__(self, name='', promo='', link='', image='', price=0, price_type='', icons='', venid=''):
+  def __init__(self, name='', promo='', link='', image='', price=0, price_type='', icons='', vender_id=''):
     super().__init__()
+    self.id = None
     self.name = name              # 名称
     self.promo = promo            # 提示
     self.link = link              # 链接
@@ -15,69 +16,35 @@ class GoodsItem(object):
     self.price = price            # 价格
     self.price_type = price_type  # 价格类型
     self.icons = icons            # 标签
-    self.venid= venid             # 商家 id
+    self.source = None            # 来源，0 京东，1 淘宝，2 天猫
+    self.parameters = None
+    self.packages = None
 
     self.sku_id = ''
     self.product_id = ''          # prodcut id *
+    self.vender_id = vender_id    # 商家 id
     self.comment_count = 0        # 评论数量 *
     self.average_score = 0        # 平均得分 *
     self.good_rate = 0            # 好评百分比，诸如 0.98，综合评价 *
-    self.comment = None 
+    self.comment_detail = None
+    self.store = None
+    self.store_link = None
+    self.brand = None
+    self.brand_link = None
+    self.channel_id = None        # 父级信息：分类 id
+    self.channel = None           # 父级信息：分类 name
 
-    self.channel_id = 0   # 父级信息：分类 id
-    self.channel = ''     # 父级信息：分类 name
-
-    self.source = 0       # 来源，0 京东，1 淘宝，2 天猫
+    self.handling_time = None
+    self.updated_time = None
+    self.created_time = None
 
   def __str__(self):
     return "Goods: (%s, %s, %s, %s, %s, %s, %s, %s,\
       %s, %s, %s, %s, %s, %s,\
-      %s, %s, %s)" % (self.name, self.promo, self.link, self.image, self.price, self.price_type, self.icons, self.venid,\
-        self.sku_id, self.product_id, self.comment_count, self.average_score, self.good_rate, self.comment, self.channel_id, self.channel, self.source)
-
-  def get_comment_detail(self):
-    '''获取对应的评论的 json 字符串'''
-    ret = ''
-    if self.comment != None:
-      ret = self.comment.to_json()
-    return ret
-
-  def get_value_of_filed_name(self, column_name) -> str:
-    '''根据数据库列的名称取出对应的字段'''
-    if column_name == 'name':
-      return self.name
-    if column_name == 'promo':
-      return self.promo
-    if column_name == 'link':
-      return self.link
-    if column_name == 'image':
-      return self.image
-    if column_name == 'price':
-      return self.price
-    if column_name == 'price_type':
-      return self.price_type
-    if column_name == 'icons':
-      return self.icons
-    if column_name == 'channel_id':
-      return self.channel_id
-    if column_name == 'channel':
-      return self.channel
-    if column_name == 'updated_time':
-      return get_current_timestamp()
-    if column_name == 'sku_id':
-      return self.sku_id
-    if column_name == 'product_id':
-      return self.product_id
-    if column_name == 'comment_count':
-      return self.comment_count
-    if column_name == 'average_score':
-      return self.average_score
-    if column_name == 'good_rate':
-      return self.good_rate
-    if column_name == 'comment_detail':
-      return self.get_comment_detail()
-    if column_name == 'vender_id':
-      return self.venid
+      %s, %s, %s)" % (self.name, self.promo, self.link, self.image, self.price, \
+        self.price_type, self.icons, self.venid, self.sku_id, self.product_id, \
+        self.comment_count, self.average_score, self.good_rate, self.comment_detail, \
+        self.channel_id, self.channel, self.source)
 
 class GoodsComment(object):
   '''商品的评价封装类'''
