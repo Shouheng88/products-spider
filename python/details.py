@@ -8,12 +8,14 @@ import time
 import random
 from bs4 import BeautifulSoup
 import traceback
+from typing import *
 
 from operators import redisOperator as redis
 from operators import dBOperator as db
 from models import *
 from utils import *
 from config import *
+from goods_operator import *
 
 class JDDetails(object):
   '''商品详情信息抓取，之前抓取的是基础信息，现在抓取详情信息
@@ -32,12 +34,12 @@ class JDDetails(object):
     job_no = start_id = item_count = 0
     type_index = int(redis.get_jd_type_index('details')) % self.group_count
     while True:
-      goods_list = db.next_page_to_handle_prameters(SOURCE_JINGDONG, self.page_size, start_id, type_index, self.group_count)
+      goods_list = go.next_page_to_handle_prameters(SOURCE_JINGDONG, self.page_size, start_id, type_index, self.group_count)
       if len(goods_list) == 0: # 表示没有需要爬取参数的任务了
         break
-      item_count = item_count + len(goods_list)
-      start_id = goods_list[len(goods_list)-1][GOODS_ID_ROW_INDEX]
-      job_no = job_no + 1
+      item_count += len(goods_list)
+      start_id = goods_list[len(goods_list)-1].id
+      job_no += 1
       logging.info(">>>> Crawling Goods Details: job[%d], starter[%d], index[%d], [%d] items done. <<<<" % (job_no, start_id, type_index, item_count))
       succeed = self.__crawl_goods_items(goods_list) # 爬取某个商品的条目
       if not succeed:
@@ -49,19 +51,19 @@ class JDDetails(object):
     send_email('京东详情爬虫【完成】报告', '[%d] jobs [%d] items done, index [%d]' % (job_no, item_count, type_index))
     redis.increase_jd_type_index('details')
 
-  def __crawl_goods_items(self, goods_list):
+  def __crawl_goods_items(self, goods_list: List[GoodsItem]):
     '''爬取商品的信息'''
     for goods_item in goods_list:
       try:
         (goods_params, html, headers) = self.__crawl_from_page(goods_item)
-        succeed = db.update_goods_parames(goods_item, goods_params) # 更新到数据库当中
+        succeed = go.update_goods_prameters(goods_item, goods_params) # 更新到数据库当中
         if not succeed:
           raise Exception('Nothing parsed!')
         # else:
           # self.ua.append(headers.get('User-Agent'))
           # logging.debug("VALID UA: " + str(self.ua)) # 对随机的 ua 做测试
       except BaseException as e:
-        self.total_failed_count = self.total_failed_count+1
+        self.total_failed_count += 1
         if self.total_failed_count > self.max_faile_count:
           return False
         logging.error('Error while crawling goods details:\n%s' % traceback.format_exc())
@@ -69,11 +71,10 @@ class JDDetails(object):
         time.sleep(random.random()*CRAWL_SLEEP_TIME_SHORT) # 小憩一会儿
     return True
 
-  def __crawl_from_page(self, goods_item):
+  def __crawl_from_page(self, goods_item: GoodsItem):
     '''从商品的详情信息页面中提取商品的详情信息'''
-    goods_link = 'https:' + goods_item[GOODS_LINK_ROW_INDEX]
     headers = get_detail_request_headers()
-    html = requests.get(goods_link, headers=headers).text
+    html = requests.get('https:' + goods_item.link, headers=headers).text
     soup = BeautifulSoup(html, "html.parser")
     goods_params = GoodsParams()
     # 解析产品参数信息

@@ -59,6 +59,44 @@ class GoodsOperator(object):
     ret = db.execute(sql)
     return ret != None
 
+  def next_page_to_handle_prameters(self, source: int, page_size: int, start_id: int, type_index: int, group_count: int) -> List[GoodsItem]:
+      '''从商品列表中取出下一个需要解析的商品，设计的逻辑参考品类爬取相关的逻辑'''
+      # 查询的时候增加 parameters 条件，也即只有当参数为空的时候才爬取，每个产品只爬取一次
+      sql = ("SELECT * FROM gt_item WHERE parameters is null and store is null and brand is null and \
+          price != -1 and id > %s and id %% %s = %s and source = %s ORDER BY id LIMIt %s") \
+          % (start_id, group_count, type_index, source, page_size) # 每次取出来 5 个数据吧
+      rows = db.fetchall(sql)
+      return self._rows_2_models(rows)
+
+  def update_goods_prameters(self, goods_item: GoodsItem, goods_params: GoodsParams):
+    '''更新产品的参数信息'''
+    fileds_to_update = {}
+    if goods_params.brand != '':
+        fileds_to_update['brand'] = goods_params.brand.replace("'", "\\'")
+    if goods_params.brand_url != '':
+        fileds_to_update['brand_link'] = goods_params.brand_url
+    if goods_params.store != '':
+        fileds_to_update['store'] = goods_params.store.replace("'", "\\'")
+    if goods_params.store_url != '':
+        fileds_to_update['store_link'] = goods_params.store_url
+    if len(goods_params.parameters) != 0:
+        text = str(goods_params.parameters).replace("'", '"')
+        if len(text) < MAX_LENGTH_OF_GOODS_PARAMETERS: # 当文字长度高于 3000 的时候就不赋值了，以保证 sql 执行不会出错
+            fileds_to_update['parameters'] = text
+    if len(goods_params.packages) != 0:
+        text = str(goods_params.packages).replace("'", '"')
+        if len(text) < MAX_LENGTH_OF_GOODS_PACKAGES: # 同上
+            fileds_to_update['packages'] = text
+    if len(fileds_to_update) == 0:
+        logging.warning("Trying to Update But Nothing Need to Update.")
+        return False
+    # 拼接 sql
+    sql_part = ''.join(["%s = '%s'," % (name, value) for name, value in fileds_to_update.items()]) \
+      + ' updated_time = ' + str(get_current_timestamp())
+    sql = "UPDATE gt_item SET %s WHERE id = %s" % (sql_part, goods_item.id)
+    ret = db.execute(sql)
+    return ret == 1
+
   def _batch_insert_goods(self, new_goods_map: Dict[str, GoodsItem]):
     '''向数据库中批量插入记录'''
     sql = "INSERT INTO gt_item (\
