@@ -75,12 +75,16 @@ class Analyser(object):
     '''测试函数'''
     self.analyse_parameters()
 
+  def test_connection(self):
+    '''其他服务器到爬虫服务器的连接测试'''
+    config.set_env(ENV_SERVER_REMOTE)
+    config.logLevel = logging.DEBUG
+    config.config_logging()
+    # redisOperator.increase_jd_type_index('test')
+    print(redisOperator.get_jd_type_index('test'))
+    an = Analyser()
+    an.analyse_parameters()
+
 if __name__ == "__main__":
   '''测试入口'''
-  config.set_env(ENV_SERVER_REMOTE)
-  config.logLevel = logging.DEBUG
-  config.config_logging()
-  redisOperator.increase_jd_type_index('test')
-  print(redisOperator.get_jd_type_index('test'))
-  # an = Analyser()
-  # an.test()
+  pass

@@ -189,7 +189,7 @@ class RedisOperator(object):
         index = self.r.get('jd_type_index_%s' % type_name)
         if index == None:
             index = 0
-        self.r.set('jd_type_index_%s' % type_name, index+1)
+        self.r.set('jd_type_index_%s' % type_name, (index+1))
 
     def _connect_redis(self):
         '''连接 Redis'''

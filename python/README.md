@@ -17,8 +17,11 @@
     install : `pip install xlrd`
 - pymysql:
     install : `pip install pymysql`
+    可能需要 ：`pip install cryptography`
 - fake-useragent，用来模拟 useragent
     install : `pip install fake-useragent`
+- jieba
+  - install : `pip install jieba`
 - pip 超时问题：
   - 使用 pip 的时候增加参数以指定镜像地址，如 `pip install redis -i https://pypi.douban.com/simple`
 
