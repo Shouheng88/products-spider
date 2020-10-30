@@ -33,7 +33,8 @@ class JDDetails(object):
   def crawl(self):
     '''爬取商品的详情信息，设计的逻辑同商品的列表页面'''
     job_no = start_id = item_count = 0
-    type_index = redis.get_cursor_of_task(self.task_name, 1) % self.group_count
+    cursor = redis.get_cursor_of_task(self.task_name, 1)
+    type_index = cursor % self.group_count
     while True:
       goods_list = go.next_page_to_handle_prameters(SOURCE_JINGDONG, self.page_size, start_id, type_index, self.group_count)
       if len(goods_list) == 0: # 表示没有需要爬取参数的任务了
@@ -51,7 +52,7 @@ class JDDetails(object):
       time.sleep(random.random() * CRAWL_SLEEP_TIME_INTERVAL) # 休眠一定时间
     logging.info(">>>> Crawling Details Job Finished: [%d] jobs, [%d] items done, index [%d]. <<<" % (job_no, item_count, type_index))
     send_email('京东详情爬虫【完成】报告', '[%d] jobs [%d] items done, index [%d]' % (job_no, item_count, type_index))
-    redis.mark_task_as_done(self.task_name)
+    redis.mark_task_as_done(self.task_name, cursor)
 
   def __crawl_goods_items(self, goods_list: List[GoodsItem]):
     '''爬取商品的信息'''
