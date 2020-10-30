@@ -20,6 +20,12 @@ class BrandOperator(object):
   def __init__(self):
     super().__init__()
 
+  def next_page_of_brands(self, page_size: int, start_id: int) -> List[Brand]:
+    '''按页取一页品牌信息'''
+    sql = ("SELECT * FROM gt_brand WHERE id > %s ORDER BY id LIMIT %s") % (start_id, page_size)
+    rows = db.fetchall(sql)
+    return self._rows_2_brands(rows)
+
   def batch_insert_or_update_brands(self, brands: List[Brand]):
     '''批量插入或者更新品牌列表'''
     succeed = True

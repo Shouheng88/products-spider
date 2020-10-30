@@ -199,6 +199,7 @@ class RedisOperator(object):
 
     def mark_task_as_done(self, task_name: str, cursor: int):
         '''标记指定的任务为完成状态'''
+        self._connect_redis()
         self.r.setbit('TASK:CRAWL:DONE:%s' % task_name, cursor, True)
 
     def get_jd_type_index(self, type_name: str):

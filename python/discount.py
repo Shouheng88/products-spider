@@ -29,7 +29,8 @@ class JDDiscount(object):
   def crawl(self, start_id_ = None):
     '''查询产品的折扣信息'''
     job_no = start_id = item_count = 0
-    type_index = redis.get_cursor_of_task(self.task_name, 1) % self.group_count # 折扣的自增 index
+    cursor = redis.get_cursor_of_task(self.task_name, 1)
+    type_index = cursor % self.group_count # 折扣的自增 index
     start_id = parse_number(start_id_, start_id)
     while True:
       goods_list = go.next_goods_page_for_icons(SOURCE_JINGDONG, ('-', '减', '券'), self.per_page_size, start_id, type_index, self.group_count) # 拉取一页数据
@@ -49,7 +50,7 @@ class JDDiscount(object):
       time.sleep(random.random() * CRAWL_SLEEP_TIME_INTERVAL)
     logging.info(">>>> Crawling Discount Job Finished: [%d] jobs [%d] items done, index[%d] <<<<" % (job_no, item_count, type_index))
     send_email('京东折扣爬虫【完成】报告', '[%d] jobs [%d] items done, index[%d]' % (job_no, item_count, type_index))
-    redis.mark_task_as_done(self.task_name)
+    redis.mark_task_as_done(self.task_name, cursor)
 
   def __crawl_goods_discount(self, goods_list: List[GoodsItem]):
     '''查询商品的折扣信息'''

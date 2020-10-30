@@ -132,7 +132,10 @@ class JDDetails(object):
   def test(self):
     '''测试入口'''
     # 如果数据库的字段发生了变化这里的参数要相应的改变哦~
-    self.crawl()
+    redis.mark_task_as_done(self.task_name, 5)
+    redis.mark_task_as_done(self.task_name, 6)
+    redis.mark_task_as_done(self.task_name, 7)
+    redis.mark_task_as_done(self.task_name, 8)
 
 if __name__ == "__main__":
   '''测试入口'''
