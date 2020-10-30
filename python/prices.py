@@ -29,11 +29,7 @@ class JDPrices(object):
     接受参数 start_id_ 用来手动指定开始的 id，这样就可以从上次失败中进行恢复
     '''
     job_no = start_id = item_count = 0
-    if start_id_ != None:
-      try:
-        start_id = int(start_id_)
-      except BaseException as e:
-        logging.error("Faile to get number from param: %s" % start_id_)
+    start_id = parse_number(start_id_, start_id)
     while True:
       goods_list = go.next_goods_page(SOURCE_JINGDONG, self.page_size, start_id)
       if len(goods_list) == 0: # 表示可能是数据加锁的时候失败了

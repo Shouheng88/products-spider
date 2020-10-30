@@ -22,16 +22,20 @@ class ManmanBuy(object):
     self.max_fail_count = 30
     self.total_failed_count = 0
 
-  def crawl(self, start_id_=None):
+  def crawl(self, start_id_=None, channel_ids_ = []):
     '''爬取任务信息'''
     job_no = start_id = item_count = 0
-    if start_id_ != None:
-      try:
-        start_id = int(start_id_)
-      except BaseException as e:
-        logging.error("Faile to get number from param: %s" % start_id_)
+    start_id = parse_number(start_id_, start_id)
+    channel_ids = []
+    for channel_id_ in channel_ids_:
+      channel_id = parse_number(channel_id_, -1)
+      if channel_id != -1:
+        channel_ids.append(channel_id)
+    if len(channel_ids) == 0:
+      logging.info('No channel specified!')
+      return
     while True:
-      goods_list = go.next_goods_page_of_channels(PRICE_HISTORY_HANDLE_CHANNELS, self.page_size, start_id) # 拉取一页数据
+      goods_list = go.next_goods_page_of_channels(channel_ids, self.page_size, start_id) # 拉取一页数据
       if len(goods_list) == 0: # 表示可能是数据加锁的时候失败了
         break
       item_count += len(goods_list)

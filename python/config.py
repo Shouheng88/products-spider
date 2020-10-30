@@ -17,8 +17,6 @@ CRAWL_SLEEP_TIME_LONG             = 10*60
 CHANNEL_HANDLE_TIMEOUT_IN_MINUTE  = 2     # 分类处理的超时时间，超时完不成则认为失败
 GOODS_HANDLE_TIMEOUT_IN_MINUTE    = 2     # 产品超时时间，同上
 PRICES_HANDLE_TIMEOUT_IN_MINUTE   = 2
-# 页数配置
-PRICE_HISTORY_HANDLE_CHANNELS     = [68]
 
 # 数据源配置，用来区分不同的来源的数据
 SOURCE_JINGDONG                 = 0

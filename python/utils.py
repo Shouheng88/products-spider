@@ -17,6 +17,15 @@ from fake_useragent import UserAgent
 
 from useragent import *
 
+def parse_number(num: str, def_val: int):
+  '''从字符串中解析出数字'''
+  if num != None:
+    try:
+      return int(num)
+    except BaseException as e:
+      logging.error("Faile to parse number : %s" % num)
+  return def_val
+
 def get_timestamp_of_today_start():
   """获取今天的开始时间的时间戳，就是当前的 0 时 0 分 0 秒的时间，返回的时间戳单位为毫秒"""
   str_today = str(datetime.date.today())
@@ -62,9 +71,10 @@ def safeGetText(node, value):
 
 def send_email(subject: str, message: str, filename = None):
   '''向开发者邮箱发送邮件'''
+  email_ = 'shouheng2015@gmail.com'
   from_ = "每日数据报告<***REMOVED***@qq.com>"
-  to_ = '亲爱的开发者<shouheng2015@gmail.com>'
-  receivers = ['shouheng2015@gmail.com']
+  to_ = '亲爱的开发者<%s>' % email_
+  receivers = [email_]
   msg = MIMEMultipart()
   msg['From'] = _format_addr(from_) # 发送者
   msg['To'] =  _format_addr(to_) # 接收者

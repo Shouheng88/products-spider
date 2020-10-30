@@ -30,11 +30,7 @@ class JDDiscount(object):
     '''查询产品的折扣信息'''
     job_no = start_id = item_count = 0
     type_index = redis.get_cursor_of_task(self.task_name, 1) % self.group_count # 折扣的自增 index
-    if start_id_ != None:
-      try:
-        start_id = int(start_id_)
-      except BaseException as e:
-        logging.error("Faile to get number from param: %s" % start_id_)
+    start_id = parse_number(start_id_, start_id)
     while True:
       goods_list = go.next_goods_page_for_icons(SOURCE_JINGDONG, ('-', '减', '券'), self.per_page_size, start_id, type_index, self.group_count) # 拉取一页数据
       if len(goods_list) == 0: # 表示可能是数据加锁的时候失败了
