@@ -24,7 +24,7 @@ class JDDiscount(object):
     self.max_faile_count = 30
     self.total_failed_count = 0
     self.per_page_size = 5
-    self.group_count = 10 # 要将全部的折扣数据分成多少组，生产约 1w 折扣商品需要爬取，每批次约 2500 条数据需要爬取
+    self.group_count = 10 # 要将全部的折扣数据分成多少组，生产约 1w 折扣商品需要爬取，每批次约 1000 条数据需要爬取
   
   def crawl(self, start_id_ = None):
     '''查询产品的折扣信息'''

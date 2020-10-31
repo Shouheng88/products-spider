@@ -136,6 +136,8 @@ class JDDetails(object):
     redis.mark_task_as_done(self.task_name, 6)
     redis.mark_task_as_done(self.task_name, 7)
     redis.mark_task_as_done(self.task_name, 8)
+    redis.mark_task_as_done(self.task_name, 9)
+    redis.mark_task_as_done('JD:DISCOUNT', 0)
 
 if __name__ == "__main__":
   '''测试入口'''

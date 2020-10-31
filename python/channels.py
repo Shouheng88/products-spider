@@ -60,7 +60,7 @@ class ChannelOperator(object):
     '''
     f = None
     today_starter = get_timestamp_of_today_start()
-    handling_before = get_current_timestamp() - get_seconds_of_minutes(CHANNEL_HANDLE_TIMEOUT_IN_MINUTE)
+    handling_before = get_current_timestamp() - 12*60*60 # 12 个小时没有完成的 channel
     sql = ("SELECT * FROM gt_channel WHERE updated_time < %s AND handling_time < %s ORDER BY updated_time") % (today_starter, handling_before)
     rows = db.fetchall(sql)
     if rows == None or len(rows) == 0:
@@ -97,8 +97,8 @@ class ChannelOperator(object):
     2. 将 lock_version + 1
     3. 通过 lock_version 来做判断，防止因为任务超时，导致任务数据被其他人修改掉
     '''
-    sql = "UPDATE gt_channel SET updated_time = %s, lock_version = %s WHERE id = %s AND lock_version = %s"\
-      % (get_current_timestamp(), channel.lock_version+2, channel.id, channel.lock_version+1)
+    sql = "UPDATE gt_channel SET updated_time = %s, lock_version = %s WHERE id = %s"\
+      % (get_current_timestamp(), channel.lock_version+2, channel.id) # 算了，不加乐观锁校验了
     ret = db.execute(sql)
     if ret != 1:
       logging.error("Failed to marking channel as done: %s\n" % traceback.format_exc())

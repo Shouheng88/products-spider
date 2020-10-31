@@ -50,4 +50,6 @@ print(requests.get("http://checkip.amazonaws.com", proxies=proxies).text)
 
   - install： `pip install pysocks`
 
+## 已爬历史价格
 
+[*]68, []71, []72, []73, []89

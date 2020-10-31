@@ -37,22 +37,30 @@ class BaiduBaike(object):
       self.get_from_baike(brand.name)
 
   def get_from_baike(self, name: str):
-    search_name = self.handle_brand_name(name)
+    (search_name, english_name) = self._handle_brand_name(name)
+    summary, logo = self._get_info_from_baike(search_name)
+    if summary == '' and logo == '' and english_name != None:
+      summary, logo = self._get_info_from_baike(english_name)
+    logging.debug("%s _ %s _ %s SUMMARY: %s" % (name, search_name, english_name, summary))
+    logging.debug("%s _ %s _ %s LOGO: %s" % (name, search_name, english_name, logo))
+
+  def _get_info_from_baike(self, word: str):
     headers = get_request_headers()
-    html = requests.get("https://baike.baidu.com/item/%s" % search_name, headers=headers).text
+    html = requests.get("https://baike.baidu.com/item/%s" % word, headers=headers).text
     soup = BeautifulSoup(html, "html.parser")
     summary = safeGetText(soup.select_one('.lemma-summary'), '').replace('\xa0', '')
     logo = safeGetAttr(soup.select_one(".summary-pic img"), 'src', '')
-    logging.debug("%s _ %s SUMMARY: %s" % (name, search_name, summary))
-    logging.debug("%s _ %s LOGO: %s" % (name, search_name, logo))
+    return summary, logo
 
-  def handle_brand_name(self, name: str):
+  def _handle_brand_name(self, name: str):
+    '''有些品牌名称带有中文括号，这里将括号内和括号外的词分开'''
     l = name.find('（')
     r = name.find('）')
     if l != -1 and r != -1:
-      return name.replace(name[l:r+1], '', -1)
+      search_name = name.replace(name[l:r+1], '', -1)
+      return (search_name, name[l+1:r])
     else:
-      return name
+      return (name, None)
 
 if __name__ == "__main__":
   config.config_logging()
