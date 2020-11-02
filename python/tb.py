@@ -27,10 +27,10 @@ class TaoBao(object):
 
     async def __init(self):
         """初始化浏览器"""
-        browser = await pyppeteer.launch(options={'headless': self.headless,
+        browser = await pyppeteer.launch(headless= self.headless,
                                           # 'userDataDir': './userdata',
-                                          'args': [
-                                              '--window-size={1300},{1600}'
+                                          args=[
+                                              #'--window-size={1200},{600}',
                                               '--disable-extensions',
                                               '--hide-scrollbars',
                                               '--disable-bundled-ppapi-flash',
@@ -40,9 +40,8 @@ class TaoBao(object):
                                               '--disable-gpu',
                                               '--disable-infobars'
                                           ],
-                                          'logLevel': logging.WARNING,
-                                          'dumpio': True
-                                          })
+                                          logLevel = logging.WARNING,
+                                          dumpio = True)
         self.page = await browser.newPage()
         # 设置浏览器头部
         for cookie in self.cookies:
@@ -102,7 +101,9 @@ class TaoBao(object):
     async def login(self):
         """登陆"""
         # 打开淘宝登陆页面
-        await self.page.goto('https://login.taobao.com')
+        res = await self.page.goto('https://www.baidu.com')
+        print(res.headers)
+        print(res.status)
         time.sleep(random.random() * 2)
         # 输入用户名
         await self.page.type('#fm-login-id', self.username, {'delay': random.randint(100, 151) - 50})
@@ -184,8 +185,9 @@ class TaoBao(object):
         # 爬取条目信息
         # 更新到数据库
         await self.__init()
-        await self.__crawl_item('https://detail.tmall.com/item.htm?id=626313427864')
-        await self.__crawl_item('https://item.taobao.com/item.htm?id=629032933807')
+        await self.login()
+        #await self.__crawl_item('https://detail.tmall.com/item.htm?id=626313427864')
+        #await self.__crawl_item('https://item.taobao.com/item.htm?id=629032933807')
 
     async def __crawl_item(self, pageurl: str):
         """爬取某个条目的详情信息"""
@@ -265,7 +267,7 @@ class TaoBao(object):
 
 if __name__ == '__main__':
     config.config_logging()
-    tb = TaoBao('', '', debug=False, headless=False)
+    tb = TaoBao('***REMOVED***', '***REMOVED***', debug=False, headless=True)
     loop = asyncio.get_event_loop()
     task = asyncio.ensure_future(tb.craw_items())
     loop.run_until_complete(task)
