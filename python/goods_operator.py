@@ -43,9 +43,10 @@ class GoodsOperator(object):
       self._batch_insert_goods(new_goods_map)
     return succeed
 
-  def next_goods_page(self, source: int, page_size: int, start_id: int) -> List[GoodsItem]:
+  def next_goods_page(self, source: int, page_size: int, start_id: int, type_index: int, group_count: int) -> List[GoodsItem]:
     """从商品列表中读取一页数据来查询商品的价格信息，"""
-    sql = ("SELECT * FROM gt_item WHERE price != -1 AND source = %s AND id > %s ORDER BY id LIMIT %s") % (source, start_id, page_size)
+    sql = ("SELECT * FROM gt_item WHERE price != -1 AND source = %s AND id > %s AND id %% %s = %s ORDER BY id LIMIT %s") \
+      % (source, start_id, group_count, type_index, page_size)
     rows = db.fetchall(sql)
     return self._rows_2_models(rows)
 

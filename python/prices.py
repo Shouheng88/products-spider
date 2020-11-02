@@ -19,9 +19,11 @@ class JDPrices(object):
   '''京东的商品价格查询，价格查询分为独立的任务进行'''
   def __init__(self):
     super().__init__()
+    self.task_name = 'JD:PRICES'
     self.page_size = 30
     self.max_fail_count = 50
     self.total_failed_count = 0
+    self.group_count = 3
 
   def crawl(self, start_id_ = None):
     '''
@@ -29,27 +31,29 @@ class JDPrices(object):
     接受参数 start_id_ 用来手动指定开始的 id，这样就可以从上次失败中进行恢复
     '''
     job_no = start_id = item_count = 0
+    cursor = redis.get_cursor_of_task(self.task_name, 1)
+    type_index = cursor % self.group_count
     start_id = parse_number(start_id_, start_id)
     while True:
-      goods_list = go.next_goods_page(SOURCE_JINGDONG, self.page_size, start_id)
+      goods_list = go.next_goods_page(SOURCE_JINGDONG, self.page_size, start_id, type_index, self.group_count)
       if len(goods_list) == 0: # 表示可能是数据加锁的时候失败了
         break
       item_count += len(goods_list)
       start_id = goods_list[len(goods_list)-1].id
       job_no += 1
-      logging.info('>>>> Crawling Prices: job[%d], starter[%d], [%d] items done. <<<<' % (job_no, start_id, item_count))
+      logging.info('>>>> Crawling Prices: job[%d], starter[%d], index[%d], [%d] items done. <<<<' % (job_no, start_id, type_index, item_count))
       succeed = self._crawl_prices(goods_list)
       if not succeed:
         self.total_failed_count += 1
         if self.total_failed_count > self.max_fail_count:
           # 同时输出 start_id 便于下次从失败中恢复
-          logging.error(">>>> Crawling Prices Job Stopped Due to Fatal Error: job[%d], starter[%d], [%d] items done. <<<<" % (job_no, start_id, item_count))
-          send_email('京东价格爬虫【异常】报告', '[%d] jobs [%d] items done, starter: [%d]' % (job_no, item_count, start_id), config.log_filename)
+          logging.error(">>>> Crawling Prices Job Stopped Due to Fatal Error: job[%d], starter[%d], index[%d], [%d] items done. <<<<" % (job_no, start_id, type_index, item_count))
+          send_email('京东价格爬虫【异常】报告', '[%d] jobs [%d] items done, starter: [%d], index[%d]' % (job_no, item_count, start_id, type_index), config.log_filename)
           break
-      # 休眠一定时间
-      time.sleep(random.random() * CRAWL_SLEEP_TIME_INTERVAL)
+      time.sleep(random.random() * CRAWL_SLEEP_TIME_INTERVAL) # 休眠一定时间
     logging.info(">>>> Crawling Prices Job Finished: [%d] jobs [%d] items done. <<<<" % (job_no, item_count))
-    send_email('京东价格爬虫【完成】报告', '[%d] jobs [%d] items done' % (job_no, item_count))
+    send_email('京东价格爬虫【完成】报告', '[%d] jobs [%d] items done, index[%d]' % (job_no, item_count, type_index))
+    redis.mark_task_as_done(self.task_name, cursor)
 
   def _crawl_prices(self, goods_list: List[GoodsItem]):
     '''批量爬取商品的价格信息，主要用来查找商品的下架状态，如果下架了，就将其标记为下架'''

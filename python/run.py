@@ -37,7 +37,6 @@ def main(argv):
     try:
         # :和= 表示接受参数
         opts, args = getopt.getopt(argv, "-h:-c:-e:-s:", ["help", "command=", 'env=', 'starter='])
-        print(args)
     except BaseException as e:
         __show_invalid_command(str(e))
         sys.exit(2)
