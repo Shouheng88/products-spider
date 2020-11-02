@@ -60,7 +60,7 @@ class ChannelOperator(object):
     '''
     f = None
     today_starter = get_timestamp_of_today_start()
-    handling_before = get_current_timestamp() - 12*60*60 # 12 个小时没有完成的 channel
+    handling_before = get_current_timestamp() - 1*60*60 # 1 个小时没有完成的 channel
     sql = ("SELECT * FROM gt_channel WHERE updated_time < %s AND handling_time < %s ORDER BY updated_time") % (today_starter, handling_before)
     rows = db.fetchall(sql)
     if rows == None or len(rows) == 0:

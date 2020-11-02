@@ -93,7 +93,7 @@ class DBOperator(object):
             con.commit()
         except BaseException as e:
             con.rollback()
-            logging.error('Failed fetchall(): %s\n' % traceback.format_exc())
+            logging.error('Failed execute(): %s\n' % traceback.format_exc())
             logging.error('SQL:%s' % sql)
         finally:
             self._safe_closs(cur)

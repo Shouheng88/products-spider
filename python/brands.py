@@ -50,7 +50,8 @@ class BrandOperator(object):
     return succeed
 
   def _get_existed_brands(self, brands: List[Brand]) -> List[Brand]:
-    val = ','.join(["'" + brand.link + "'" for brand in brands])
+    # fix 2020-10-31 品牌的链接中的引号要处理下
+    val = ','.join(["'" + brand.link.replace("'", "\\'") + "'" for brand in brands])
     sql = "SELECT * FROM gt_brand WHERE link IN (%s)" % val
     rows = db.fetchall(sql)
     return self._rows_2_brands(rows)
