@@ -13,46 +13,78 @@ from pyppeteer.dialog import Dialog
 
 from models import GoodsItem
 from config import *
+from utils import *
 
 class TaoBao(object):
     """淘宝的登录类"""
-    def __init__(self, username: str, password: str, debug=False, headless=True):
+    def __init__(self, debug=False, headless=True):
         super().__init__()
         pyppeteer.DEBUG = debug
         self.page: page.Page = None
         self.headless = headless
-        self.username = username
-        self.password = password
         self.cookies = []
+        self.args = ['--disable-extensions',
+            '--hide-scrollbars',
+            '--disable-bundled-ppapi-flash',
+            '--mute-audio',
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-gpu',
+            '--disable-infobars']
+        if not self.headless: # 非 headless 模式的时候加上窗口限制
+            self.args.append('--window-size={1200},{600}')
 
-    async def __init(self):
+    async def init(self):
         """初始化浏览器"""
-        browser = await pyppeteer.launch(headless= self.headless,
-                                          # 'userDataDir': './userdata',
-                                          args=[
-                                              #'--window-size={1200},{600}',
-                                              '--disable-extensions',
-                                              '--hide-scrollbars',
-                                              '--disable-bundled-ppapi-flash',
-                                              '--mute-audio',
-                                              '--no-sandbox',
-                                              '--disable-setuid-sandbox',
-                                              '--disable-gpu',
-                                              '--disable-infobars'
-                                          ],
-                                          logLevel = logging.WARNING,
-                                          dumpio = True)
+        browser = await pyppeteer.launch(headless= self.headless, args=self.args, logLevel = logging.WARNING, dumpio = True)
         self.page = await browser.newPage()
         # 设置浏览器头部
         for cookie in self.cookies:
             await self.page.setCookie(cookie)
-        await self.page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
-                                     '(KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36 Edge/16.16299')
+        await self.page.setUserAgent(random_useragent())
         # 设置浏览器大小
         await self.page.setViewport({'width': 1200, 'height': 600})
-        # 注入js
-        await self.page.evaluateOnNewDocument('() =>{ Object.defineProperties(navigator,'
-                                         '{ webdriver:{ get: () => false } }) }')  # 本页刷新后值不变
+        # 注入 js
+        await self.page.evaluateOnNewDocument('()=>{ Object.defineProperties(navigator,' '{ webdriver:{ get: () => false } }) }')  # 本页刷新后值不变
+
+    async def login(self, username: str, password: str):
+        """登陆"""
+        # 打开淘宝登陆页面
+        res = await self.page.goto('https://login.taobao.com')
+        time.sleep(random.random() * 2)
+        # 输入用户名
+        await self.page.type('#fm-login-id', username, {'delay': random.randint(100, 151) - 50})
+        # 输入密码
+        await self.page.type('#fm-login-password', password, {'delay': random.randint(100, 151)})
+        time.sleep(random.random() * 2)
+        # 获取滑块元素
+        # slider = await self.page.Jeval('#nocaptcha', 'node => node.style')
+        # if slider:
+        #     print('有滑块')
+        #     # 移动滑块
+        #     flag = await self.mouse_slider()
+        #     if not flag:
+        #         print('滑动滑块失败')
+        #         return None
+        #     time.sleep(random.random() + 1.5)
+        # 点击登陆
+        await self.page.click('.password-login')
+        await asyncio.sleep(3)
+        cookies_list = await self.page.cookies()
+        return cookies_list
+
+    async def crawl_keyword(self, keyword: str, max_page: int):
+        """爬取指定关键字的商品"""
+        current_page = 0
+        while(current_page <= max_page):
+            try:
+                goods_list = await self.__crawl_goods_list_page("https://s.taobao.com/search?q=%s&s=%d" % (keyword, current_page*44))
+                for goods_item in goods_list:
+                    print(goods_item)
+                current_page = current_page+1
+                # 批量插入或者更新到数据库中
+            except BaseException as e:
+                logging.error("Error While Crawling Goods: " % traceback.format_exc())
 
     async def __drop_down(self):
         """网页下拉，不下拉抓取不到部分数据"""
@@ -98,51 +130,7 @@ class TaoBao(object):
                 print('验证通过')
                 return True
 
-    async def login(self):
-        """登陆"""
-        # 打开淘宝登陆页面
-        res = await self.page.goto('https://www.baidu.com')
-        print(res.headers)
-        print(res.status)
-        time.sleep(random.random() * 2)
-        # 输入用户名
-        await self.page.type('#fm-login-id', self.username, {'delay': random.randint(100, 151) - 50})
-        # 输入密码
-        await self.page.type('#fm-login-password', self.password, {'delay': random.randint(100, 151)})
-        time.sleep(random.random() * 2)
-        # 获取滑块元素
-        # slider = await self.page.Jeval('#nocaptcha', 'node => node.style')
-        # if slider:
-        #     print('有滑块')
-        #     # 移动滑块
-        #     flag = await self.mouse_slider()
-        #     if not flag:
-        #         print('滑动滑块失败')
-        #         return None
-        #     time.sleep(random.random() + 1.5)
-        # 点击登陆
-        await self.page.click('.password-login')
-        await asyncio.sleep(3)
-        cookies_list = await self.page.cookies()
-        return cookies_list
-
-    async def crawl_keyword(self, keyword: str):
-        """爬取指定关键字的商品"""
-        await self.__init()
-        # await self.login()
-        try:
-            max_page = 3
-            current_page = 0
-            while(current_page != max_page):
-                goods_list = await self.__crawl_page("https://s.taobao.com/search?q=%s&s=%d" % (keyword, current_page*44))
-                for goods_item in goods_list:
-                    print(goods_item)
-                current_page = current_page+1
-                # 批量插入或者更新到数据库中
-        except BaseException as e:
-            logging.error("Error While Crawling Goods: " % traceback.format_exc())
-
-    async def __crawl_page(self, pageurl: str):
+    async def __crawl_goods_list_page(self, pageurl: str) -> List[GoodsItem]:
         """搜索指定的关键字"""
         await self.page.goto(pageurl)
         time.sleep(random.random() * 2)

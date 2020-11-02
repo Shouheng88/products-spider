@@ -50,6 +50,18 @@ print(requests.get("http://checkip.amazonaws.com", proxies=proxies).text)
 
   - install： `pip install pysocks`
 
+## pyppeteer 
+
+在 Linux 系统上安装可能会出现缺少 so 文件的情况，此时可以参考 puppeteer 项目安装，
+
+https://github.com/puppeteer/puppeteer/blob/main/docs/troubleshooting.md#chrome-headless-doesnt-launch-on-unix
+
+缺少 `libatk-bridge-2.0.so.0` 的情况，参考 https://github.com/puppeteer/puppeteer/issues/1598 ：
+
+```
+sudo yum install atk java-atk-wrapper at-spi2-atk gtk3 libXt
+```
+
 ## 已爬历史价格
 
 [*]68, []71, []72, []73, []89

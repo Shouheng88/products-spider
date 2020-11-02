@@ -77,6 +77,14 @@ class ChannelOperator(object):
           break
     return f
 
+  def next_channel_of_task_to_handle(self, start_id: int, type_index: int, group_count: int) -> Channel:
+    '''指定任务的下一个用来处理的 channel'''
+    sql = 'SELECt * FROM gt_channel WHERE id %% %s = %s ANd id > %s LIMIT 1' % (group_count, type_index, start_id)
+    rows = db.fetchall(sql)
+    channels = self._rows_2_models(rows)
+    if len(channels) > 0:
+      return channels[0]
+
   def get_channels_of_ids(self, channel_id_list) -> List[Channel]:
     '''通过 channel id 列表获取 channel 数据'''
     id_list = []
