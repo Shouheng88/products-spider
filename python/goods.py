@@ -144,8 +144,6 @@ class JDGoods(object):
         name = safeGetText(goods_element.select_one(".p-name a em"), "")
         commit_link = safeGetAttr(goods_element.select_one(".p-commit a"), "href", "")
         icons = safeGetText(goods_element.select_one(".p-icons i"), "")
-        # logging.debug('url:%s\nimg:%s\nvid:%s\npt:%s\np:%s\npromo:%s\nname:%s\ncl:%s\nicons:%sskuid:%s\n'\
-          # % (url, img, vid, prince_type, price, promo, name, commit_link, icons, sku_id))
         # 组装产品信息，价格要扩大 100 倍
         goods_item = GoodsItem(name, promo, url, img, int(float(price)*100), prince_type, icons, vid)
         goods_item.sku_id = sku_id
