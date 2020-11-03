@@ -147,7 +147,7 @@ class GlobalConfig(object):
 
   def config_logging(self):
     """配置应用日志"""
-    LOG_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
+    LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     DATE_FORMAT = "%m/%d/%Y %H:%M:%S %p"
     self.log_filename = "log/" + str(datetime.date.today()) + self.logAppendix + '.log' # 指定输出路径，日志归纳到 log 目录下
     logging.basicConfig(filename=self.log_filename, filemode='a', level=self.logLevel, format=LOG_FORMAT, datefmt=DATE_FORMAT)

@@ -16,9 +16,9 @@ class GoodsItem(object):
     self.price = price            # 价格
     self.price_type = price_type  # 价格类型
     self.icons = icons            # 标签
-    self.source = None            # 来源，0 京东，1 淘宝，2 天猫
-    self.parameters = None
-    self.packages = None
+    self.source = 0               # 来源，0 京东，1 淘宝，2 天猫
+    self.parameters = ''
+    self.packages = ''
 
     self.sku_id = ''
     self.product_id = ''          # prodcut id *
@@ -26,25 +26,20 @@ class GoodsItem(object):
     self.comment_count = 0        # 评论数量 *
     self.average_score = 0        # 平均得分 *
     self.good_rate = 0            # 好评百分比，诸如 0.98，综合评价 *
-    self.comment_detail = None
-    self.store = None
-    self.store_link = None
-    self.brand = None
-    self.brand_link = None
-    self.channel_id = None        # 父级信息：分类 id
-    self.channel = None           # 父级信息：分类 name
+    self.comment_detail = ''
+    self.store = ''
+    self.store_link = ''
+    self.brand = ''
+    self.brand_link = ''
+    self.channel_id = 0           # 父级信息：分类 id
+    self.channel = ''             # 父级信息：分类 name
 
     self.handling_time = None
     self.updated_time = None
     self.created_time = None
 
   def __str__(self):
-    return "Goods: (%s, %s, %s, %s, %s, %s, %s, %s,\
-      %s, %s, %s, %s, %s, %s,\
-      %s, %s, %s)" % (self.name, self.promo, self.link, self.image, self.price, \
-        self.price_type, self.icons, self.venid, self.sku_id, self.product_id, \
-        self.comment_count, self.average_score, self.good_rate, self.comment_detail, \
-        self.channel_id, self.channel, self.source)
+    return to_str(self)
 
 class GoodsComment(object):
   '''商品的评价封装类'''
@@ -60,9 +55,7 @@ class GoodsComment(object):
     self.showCount = show       # show count
                 
   def __str__(self):
-    return "Comment: (%d, %d, %d, %d, %d, %d, %d, %d)" % (self.defaultGoodCount, \
-      self.goodCount, self.generalCount, self.poorCount, self.videoCount, \
-      self.afterCount, self.oneYear, self.showCount)
+    return to_str(self)
 
   def to_json(self):
     '''获取对应的 json 字符串'''
@@ -80,9 +73,7 @@ class GoodsParams(object):
     self.packages = {} # 是一个哈希表 {g1: [(), (), ...], g2:[], ...}
 
   def __str__(self):
-      return 'Brand:' + self.brand + '(' + self.brand_url + ')\nStore:' + self.store + \
-        '(' + self.store_url + ')\nParameters:' + str(self.parameters) \
-        + '\nPackages:'  + str(self.packages)
+    return to_str(self)
 
 class Brand(object):
   '''商品的品牌信息'''
@@ -117,7 +108,7 @@ class Category(object):
     self.children = {}
 
   def __str__(self):
-      return ' ' + self.name + ' ' + self.cat + ' ' + str(self.children)
+    return to_str(self)
 
 class Channel(object):
   def __init__(self):
@@ -152,6 +143,9 @@ class Discount(object):
     self.lock_version = None
     self.updated_time = None
     self.created_time = None
+
+  def __str__(self):
+    return to_str(self)
 
 def goodsComment2Dict(comment):
   return {

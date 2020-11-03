@@ -151,6 +151,7 @@ class JDGoods(object):
         goods_item.sku_id = sku_id
         goods_item.channel = channel.name
         goods_item.channel_id = channel.id
+        goods_item.source = SOURCE_JINGDONG
         goods_list.append(goods_item)
     except BaseException as e:
       succeed = False
@@ -238,16 +239,16 @@ class TBGoods(object):
     self.total_failed_count = 0 # 当前总的失败次数
     self.group_count = 3
 
-  def crawl(self):
-    tb = TaoBao(debug=False, headless=True)
-    tb.init()
-    tb.login('***REMOVED***', '***REMOVED***')
+  def crawl(self, debug:bool=False, headless:bool=True):
+    tb = TaoBao('***REMOVED***', '***REMOVED***', debug=debug, headless=headless)
     loop = asyncio.get_event_loop()
     task = asyncio.ensure_future(self._crawl_channels(tb))
     loop.run_until_complete(task)
 
   async def _crawl_channels(self, tb: TaoBao):
     '''爬取各个品类'''
+    await tb.init()
+    await tb.login()
     job_no = start_id = item_count = 0
     cursor = redis.get_cursor_of_task(self.task_name, 1)
     type_index = cursor % self.group_count
@@ -255,11 +256,13 @@ class TBGoods(object):
       channel = co.next_channel_of_task_to_handle(start_id, type_index, self.group_count)
       if channel == None:
         break
-      item_count += 1
       start_id = channel.id
+      if len(channel.treepath.split("|")) != 3: # 非三级品类继续下一个
+        continue
+      item_count += 1
       logging.info(">>>> Crawling TB Goods: job[%d], starter[%d], index[%d], [%d] items done <<<<" % (job_no, start_id, type_index, item_count))
       job_no += 1
-      tb.crawl_keyword(channel.name, self.max_page)
+      await tb.crawl_keyword(channel.name, min(self.max_page, channel.max_page_count*2), self, channel)
       # 不管爬取的整体结果如何，如果失败了，内部加 1 即可，方法结束总是判断一下是否达到阈值就行了
       if self.total_failed_count > self.max_fail_count:
         logging.error(">>>> Crawling TB Goods Stopped Due to Fatal Error: job[%d], starter[%d], index[%d], [%d] items done <<<<" % (job_no, start_id, type_index, item_count))
@@ -270,11 +273,16 @@ class TBGoods(object):
     send_email('淘宝商品列表爬虫【完成】报告', '[%d] jobs [%d] items done, index[%d]' % (job_no, item_count, type_index))
     redis.mark_task_as_done(self.task_name, cursor)
 
+  def increase_fail_count(self):
+    '''错误次数加 1'''
+    self.total_failed_count += 1
+    return self.total_failed_count > self.max_fail_count
+
 if __name__ == "__main__":
   '''调试入口'''
   config.config_logging()
   config.set_env(ENV_LOCAL)
-  # gd = TBGoods()
-  # gd.test()
-  ret = co.next_channel_to_handle()
-  print(ret.name)
+  gd = TBGoods()
+  gd.crawl(debug=True, headless=False)
+  # ret = co.next_channel_to_handle()
+  # print(ret.name)

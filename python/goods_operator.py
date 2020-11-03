@@ -38,9 +38,11 @@ class GoodsOperator(object):
     # 批量更新
     if len(map_2_update) != 0:
       self._batch_update_goods(map_2_update)
+      logging.debug('%d items updated ' % len(map_2_update))
     # 批量插入
     if len(new_goods_map) != 0:
       self._batch_insert_goods(new_goods_map)
+      logging.debug('%d items inserted ' % len(new_goods_map))
     return succeed
 
   def next_goods_page(self, source: int, page_size: int, start_id: int, type_index: int, group_count: int) -> List[GoodsItem]:
@@ -143,7 +145,7 @@ class GoodsOperator(object):
       values.append((goods_item.name.replace("'", "\'"), goods_item.promo.replace("'", "\'"), goods_item.link, 
           goods_item.image, goods_item.price, goods_item.price_type,
           goods_item.icons.replace("'", "\'"), goods_item.channel_id, goods_item.channel,
-          0, int(get_current_timestamp()), int(get_current_timestamp()), 0, SOURCE_JINGDONG, # 将 handling_time 置为 0, souce 置为 0
+          0, int(get_current_timestamp()), int(get_current_timestamp()), 0, goods_item.source, # 将 handling_time 置为 0, souce 置为 0
           goods_item.sku_id, goods_item.product_id, goods_item.comment_count, 
           goods_item.average_score, goods_item.good_rate, goods_item.comment_detail, goods_item.vender_id))
     db.executemany(sql, tuple(values))

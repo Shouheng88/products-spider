@@ -26,6 +26,20 @@ def parse_number(num: str, def_val: int):
       logging.error("Faile to parse number : %s" % num)
   return def_val
 
+def parse_number_or_none(num: str):
+  try:
+    return int(num)
+  except BaseException as e:
+    logging.error("Faile to parse number : %s" % num)
+
+def to_str(obj: object) -> str:
+  str_list = []
+  fields = dir(obj)
+  for field in fields:
+    if not field.startswith('_'):
+      str_list.append('%s:%s' % (field, getattr(obj, field)))
+  return str(str_list)
+
 def get_timestamp_of_today_start():
   """获取今天的开始时间的时间戳，就是当前的 0 时 0 分 0 秒的时间，返回的时间戳单位为毫秒"""
   str_today = str(datetime.date.today())

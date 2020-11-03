@@ -81,7 +81,7 @@ class ChannelOperator(object):
     '''指定任务的下一个用来处理的 channel'''
     sql = 'SELECt * FROM gt_channel WHERE id %% %s = %s ANd id > %s LIMIT 1' % (group_count, type_index, start_id)
     rows = db.fetchall(sql)
-    channels = self._rows_2_models(rows)
+    channels = self._rows_2_channels(rows)
     if len(channels) > 0:
       return channels[0]
 

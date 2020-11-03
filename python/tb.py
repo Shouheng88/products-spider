@@ -10,18 +10,22 @@ from pyppeteer import page
 import logging
 import traceback
 from pyppeteer.dialog import Dialog
+from typing import *
 
-from models import GoodsItem
+from models import *
 from config import *
 from utils import *
+from goods_operator import *
 
 class TaoBao(object):
     """淘宝的登录类"""
-    def __init__(self, debug=False, headless=True):
+    def __init__(self, username: str, password: str, debug=False, headless=True):
         super().__init__()
         pyppeteer.DEBUG = debug
         self.page: page.Page = None
         self.headless = headless
+        self.username = username
+        self.password = password
         self.cookies = []
         self.args = ['--disable-extensions',
             '--hide-scrollbars',
@@ -33,30 +37,32 @@ class TaoBao(object):
             '--disable-infobars']
         if not self.headless: # 非 headless 模式的时候加上窗口限制
             self.args.append('--window-size={1200},{600}')
+        # 调整 websorckets 的日志等级
+        logging.getLogger('websockets.protocol').setLevel(logging.WARNING)
 
     async def init(self):
         """初始化浏览器"""
-        browser = await pyppeteer.launch(headless= self.headless, args=self.args, logLevel = logging.WARNING, dumpio = True)
+        browser = await pyppeteer.launch(options = { 'logLevel': logging.WARNING }, headless= self.headless, args=self.args, dumpio = True)
         self.page = await browser.newPage()
         # 设置浏览器头部
-        for cookie in self.cookies:
-            await self.page.setCookie(cookie)
-        await self.page.setUserAgent(random_useragent())
+        # for cookie in self.cookies:
+            # await self.page.setCookie(cookie)
+        await self.page.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36")
         # 设置浏览器大小
         await self.page.setViewport({'width': 1200, 'height': 600})
         # 注入 js
         await self.page.evaluateOnNewDocument('()=>{ Object.defineProperties(navigator,' '{ webdriver:{ get: () => false } }) }')  # 本页刷新后值不变
 
-    async def login(self, username: str, password: str):
+    async def login(self, is_redirct: bool = False):
         """登陆"""
         # 打开淘宝登陆页面
-        res = await self.page.goto('https://login.taobao.com')
+        if not is_redirct:
+            res = await self.page.goto('https://login.taobao.com')
         time.sleep(random.random() * 2)
         # 输入用户名
-        await self.page.type('#fm-login-id', username, {'delay': random.randint(100, 151) - 50})
+        await self.page.type('#fm-login-id', self.username, {'delay': random.randint(100, 151) - 50})
         # 输入密码
-        await self.page.type('#fm-login-password', password, {'delay': random.randint(100, 151)})
-        time.sleep(random.random() * 2)
+        await self.page.type('#fm-login-password', self.password, {'delay': random.randint(100, 151)})
         # 获取滑块元素
         # slider = await self.page.Jeval('#nocaptcha', 'node => node.style')
         # if slider:
@@ -68,23 +74,37 @@ class TaoBao(object):
         #         return None
         #     time.sleep(random.random() + 1.5)
         # 点击登陆
-        await self.page.click('.password-login')
         await asyncio.sleep(3)
+        await self.page.click('.password-login')
+        await asyncio.sleep(5)
         cookies_list = await self.page.cookies()
         return cookies_list
 
-    async def crawl_keyword(self, keyword: str, max_page: int):
+    async def crawl_keyword(self, keyword: str, max_page: int, tg, channel: Channel):
         """爬取指定关键字的商品"""
         current_page = 0
+        hit_max_fail_count = False
         while(current_page <= max_page):
             try:
-                goods_list = await self.__crawl_goods_list_page("https://s.taobao.com/search?q=%s&s=%d" % (keyword, current_page*44))
-                for goods_item in goods_list:
-                    print(goods_item)
-                current_page = current_page+1
+                # 总是+1，这样某页失败了，这页直接跳过
+                current_page += 1
+                pageurl = "https://s.taobao.com/search?q=%s&s=%d" % (keyword, current_page*44)
+                logging.debug('Crawling %s' % pageurl)
+                (goods_list, parsed_max_page) = await self.__crawl_goods_list_page(pageurl, channel)
+                # 解析总页数
+                if current_page == 1 and parsed_max_page != None:
+                    max_page = min(max_page, parsed_max_page)
                 # 批量插入或者更新到数据库中
+                go.batch_insert_or_update_goods(goods_list)
+                existed_goods = go.get_existed_goods(goods_list)
+                redis.add_goods_price_histories(existed_goods)
             except BaseException as e:
-                logging.error("Error While Crawling Goods: " % traceback.format_exc())
+                hit_max_fail_count = tg.increase_fail_count()
+                logging.error("Error While Crawling TB Goods:\n%s" % traceback.format_exc())
+                logging.error("REQ:%s" % pageurl)
+            finally:
+                if hit_max_fail_count:
+                    break
 
     async def __drop_down(self):
         """网页下拉，不下拉抓取不到部分数据"""
@@ -130,42 +150,83 @@ class TaoBao(object):
                 print('验证通过')
                 return True
 
-    async def __crawl_goods_list_page(self, pageurl: str) -> List[GoodsItem]:
+    async def __crawl_goods_list_page(self, pageurl: str, channel: Channel, retry: bool = False) -> (List[GoodsItem], int):
         """搜索指定的关键字"""
         await self.page.goto(pageurl)
         time.sleep(random.random() * 2)
         await self.__drop_down() # 下拉
         items = await self.page.xpath('//*[@id="mainsrp-itemlist"]/div/div/div[1]/div')
+        page_count = None
+        e_page_count = await self.page.xpath('//*[@id="J_relative"]/div[1]/div/div[2]/ul/li[2]')
+        if len(e_page_count) > 0:
+            str_page_count = await (await e_page_count[0].getProperty('textContent')).jsonValue()
+            str_page_counts = str_page_count.split('/')
+            if len(str_page_counts) > 1:
+                page_count = parse_number_or_none(str_page_counts[1])
         goods_list = []
         for idx in range(1, len(items)+1):
-            # 有时候第一个商品的链接有点问题，会塞成一个广告
-            e_link = await self.page.xpath('//*[@id="mainsrp-itemlist"]/div/div/div[1]/div[%d]/div[1]/div/div[1]/a' % idx)
-            e_img = await self.page.xpath('//*[@id="mainsrp-itemlist"]/div/div/div[1]/div[%d]/div[1]/div/div[1]/a/img' % idx)
-            e_price = await self.page.xpath('//*[@id="mainsrp-itemlist"]/div/div/div[1]/div[%d]/div[2]/div[1]/div[1]/strong' % idx)
-            e_price_type = await self.page.xpath('//*[@id="mainsrp-itemlist"]/div/div/div[1]/div[%d]/div[2]/div[1]/div[1]/span' % idx)
-            e_title = await self.page.xpath('//*[@id="mainsrp-itemlist"]/div/div/div[1]/div[%d]/div[2]/div[2]/a' % idx)
-            e_store = await self.page.xpath('//*[@id="mainsrp-itemlist"]/div/div/div[1]/div[%d]/div[2]/div[3]/div[1]/a/span[2]' % idx)
-            e_tmall = await self.page.xpath('//*[@id="mainsrp-itemlist"]/div/div/div[1]/div[%d]/div[2]/div[4]/div[1]/ul/li/a' % idx)
-            link: str = await (await e_link[0].getProperty('href')).jsonValue()
-            image = await (await e_img[0].getProperty('src')).jsonValue()
-            price = await (await e_price[0].getProperty('textContent')).jsonValue()
-            price_type = await (await e_price_type[0].getProperty('textContent')).jsonValue()
-            title: str = await (await e_title[0].getProperty('textContent')).jsonValue()
-            store: str = await (await e_store[0].getProperty('textContent')).jsonValue()
-            sku_id = link[link.index('=')+1: link.index('&')]
-            print(sku_id)
-            goods_item = GoodsItem(title.strip(), '', link, image, int(float(price)*100), price_type, '', '')
-            goods_item.sku_id = sku_id
-            # 设置商品的来源字段
-            goods_item.source = 1 #默认淘宝
-            if len(e_tmall) > 0:
-                label: str = await (await e_tmall[0].getProperty('href')).jsonValue()
-                if label.startswith('https://www.tmall.com'):
-                    goods_item.source = 2
-                else:
-                    goods_item.source = 1
-            goods_list.append(goods_item)
-        return goods_list
+            # 循环体内进行 try...catch 某个条目解析出现异常不影响其他条目
+            try:
+                # 有时候第一个商品的链接有点问题，会塞成一个广告
+                e_link = await self.page.xpath('//*[@id="mainsrp-itemlist"]/div/div/div[1]/div[%d]/div[1]/div/div[1]/a' % idx)
+                e_img = await self.page.xpath('//*[@id="mainsrp-itemlist"]/div/div/div[1]/div[%d]/div[1]/div/div[1]/a/img' % idx)
+                e_price = await self.page.xpath('//*[@id="mainsrp-itemlist"]/div/div/div[1]/div[%d]/div[2]/div[1]/div[1]/strong' % idx)
+                e_price_type = await self.page.xpath('//*[@id="mainsrp-itemlist"]/div/div/div[1]/div[%d]/div[2]/div[1]/div[1]/span' % idx)
+                e_title = await self.page.xpath('//*[@id="mainsrp-itemlist"]/div/div/div[1]/div[%d]/div[2]/div[2]/a' % idx)
+                e_store_link = await self.page.xpath('//*[@id="mainsrp-itemlist"]/div/div/div[1]/div[%d]/div[2]/div[3]/div[1]/a' % idx)
+                e_store = await self.page.xpath('//*[@id="mainsrp-itemlist"]/div/div/div[1]/div[%d]/div[2]/div[3]/div[1]/a/span[2]' % idx)
+                e_icons = await self.page.xpath('//*[@id="mainsrp-itemlist"]/div/div/div[1]/div[%d]/div[2]/div[4]/div[1]/ul/li' % idx)
+                e_tmall = await self.page.xpath('//*[@id="mainsrp-itemlist"]/div/div/div[1]/div[%d]/div[2]/div[4]/div[1]/ul/li/a' % idx)
+                link: str = await (await e_link[0].getProperty('href')).jsonValue()
+                image = await (await e_img[0].getProperty('src')).jsonValue()
+                price = await (await e_price[0].getProperty('textContent')).jsonValue()
+                price_type = await (await e_price_type[0].getProperty('textContent')).jsonValue()
+                title: str = await (await e_title[0].getProperty('textContent')).jsonValue()
+                store: str = await (await e_store[0].getProperty('textContent')).jsonValue()
+                store_link = await (await e_store_link[0].getProperty('href')).jsonValue()
+                sku_id = link[link.index('=')+1: link.index('&')]
+                if len(link) > 490: # 当链接超长的时候的处理方案
+                    link = 'https://item.taobao.com/item.htm?id=%s' + sku_id
+                goods_item = GoodsItem(title.strip(), '', link, image, int(float(price)*100), price_type, '', '')
+                goods_item.sku_id = sku_id.strip()
+                goods_item.channel = channel.name
+                goods_item.channel_id = channel.id
+                goods_item.store = store
+                goods_item.store_link = store_link
+                # 设置商品的来源字段
+                goods_item.source = 1 #默认淘宝
+                if len(e_tmall) > 0:
+                    label: str = await (await e_tmall[0].getProperty('href')).jsonValue()
+                    if label.startswith('https://www.tmall.com'):
+                        goods_item.source = 2
+                    else:
+                        goods_item.source = 1
+                # icons
+                icon_list = []
+                for e_icon in e_icons:
+                    e_icon_title = await e_icon.querySelector('.icon > *')
+                    if e_icon_title != None:
+                        icon_title = await (await e_icon_title.getProperty('title')).jsonValue()
+                        icon_list.append(icon_title.strip())
+                if len(icon_list) > 0:
+                    goods_item.icons = ' '.join(icon_list)
+                # 加入到列表中
+                goods_list.append(goods_item)
+            except BaseException as e:
+                logging.error('Failed to get info from list:\n%s' % traceback.format_exc())
+        # 检查是否触发了强制登录
+        if len(items) == 0 and not retry:
+            e_login_form = await self.page.querySelector('.login-form')
+            if e_login_form != None:
+                logging.warning('Login event was invoked!!!!')
+                await self.login(is_redirct=True) # 进行登录
+                return await self.__crawl_goods_list_page(pageurl, channel, retry=True)
+        elif len(items) == 0 and retry:
+            # 重新登录，但是还是无法进入商品列表
+            e_login_form = await self.page.querySelector('.login-form')
+            if e_login_form != None:
+                raise Exception('Invoked Login Event!!!')
+        return (goods_list, page_count)
 
     async def craw_items(self):
         '''从列表中取出商品并进行爬取'''
