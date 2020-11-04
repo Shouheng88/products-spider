@@ -335,9 +335,13 @@ class TaoBao(object):
         # print(dialog.defaultValue())#打印出默认的值只有prompt弹框才有
         await self.page.waitFor(2000)#特意加两秒等可以看到弹框出现后取消
 
+    async def test_env(self):
+        await self.init()
+        await self.page.goto('https://www.baidu.com')
+
 if __name__ == '__main__':
     config.config_logging()
-    tb = TaoBao('***REMOVED***', '***REMOVED***', debug=False, headless=False)
+    tb = TaoBao('***REMOVED***', '***REMOVED***', debug=False, headless=True)
     loop = asyncio.get_event_loop()
-    task = asyncio.ensure_future(tb.login_first_time('17753137089'))
+    task = asyncio.ensure_future(tb.test_env())
     loop.run_until_complete(task)
