@@ -42,6 +42,7 @@ CMD_CRAWL_JD_DETAIL             = 'crawl_jd_detail'   # 每周周日 0:00 开始
 CMD_CRAWL_JD_DISCOUNT           = 'crawl_jd_discount' # 每周周三 16:00 开始爬取折扣信息
 CMD_CRAWL_JD_PRICES             = 'crawl_jd_prices'   # 每月 1,15 号 12:00 检查价格信息
 CMD_CRAWL_HISTORY               = 'crawl_history'
+CMD_CRAWL_TB_GOODS              = 'crawl_tb_goods'
 # 环境值常量
 ENV_LOCAL                       = 'local'
 ENV_TEST                        = 'test'

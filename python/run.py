@@ -22,6 +22,7 @@ Options: \n\
         %s       : Crawl jingdong item discount\n\
         %s         : Crawl jingdong item prices from batch api, used to detect item sold out\n\
         %s           : Crawl price hisotry\n\
+        %s          : Crawl taobao goods for every channel\n\
     -e[--env]                   Environment\n\
         %s                   : Local develop\n\
         %s                    : Test server\n\
@@ -29,7 +30,7 @@ Options: \n\
         %s           : Local connect to remote\n\
     -s[--starter]               The starter used to set a restart point for some jobs.\n\
     " % (CMD_WRITE_JD_CATEGORY, CMD_CRAWL_JD_CATEGORY, CMD_CRAWL_JD_GOODS, \
-        CMD_CRAWL_JD_DETAIL, CMD_CRAWL_JD_DISCOUNT, CMD_CRAWL_JD_PRICES, CMD_CRAWL_HISTORY,\
+        CMD_CRAWL_JD_DETAIL, CMD_CRAWL_JD_DISCOUNT, CMD_CRAWL_JD_PRICES, CMD_CRAWL_HISTORY, CMD_CRAWL_TB_GOODS,\
         ENV_LOCAL, ENV_TEST, ENV_SERVER_LOCAL, ENV_SERVER_REMOTE)
 
 def main(argv):
@@ -84,6 +85,9 @@ def main(argv):
         elif cmd == CMD_CRAWL_HISTORY: # 爬取商品的历史价格信息
             print('Start to crawl price histories, starter[%s] ...' % starter)
             ManmanBuy().crawl(starter, args)
+        elif cmd == CMD_CRAWL_TB_GOODS:
+            print("Start to crawl TB goods ...")
+            TBGoods().crawl()
         else:
             __show_invalid_command('unknown command')
 
