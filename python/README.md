@@ -56,11 +56,25 @@ print(requests.get("http://checkip.amazonaws.com", proxies=proxies).text)
 
 https://github.com/puppeteer/puppeteer/blob/main/docs/troubleshooting.md#chrome-headless-doesnt-launch-on-unix
 
-缺少 `libatk-bridge-2.0.so.0` 的情况，参考 https://github.com/puppeteer/puppeteer/issues/1598 ：
+即到 chrome 的安装目录下面执行 `ldd chrome | grep not` 查看缺少的文件
+
+缺少 `libatk-bridge-2.0.so.0` 等 so 的情况，参考 https://github.com/puppeteer/puppeteer/issues/1598 ：
 
 ```
-sudo yum install atk java-atk-wrapper at-spi2-atk gtk3 libXt
+sudo yum install libXcomposite libXcursor libXi libXtst libXScrnSaver libXrandr atk at-spi2-atk gtk3 -y
 ```
+
+# 淘宝的登录策略
+
+之前看到有人说会有滑块，但是登录了几次没发现滑块，后来登录次数多了出现了滑块。当前（2020-11-04）淘宝的登录策略猜测：
+
+1. 一般情况下输入用户名和密码可以直接登录，
+
+2. 如果在这个网络或者设备上面没有登录过，登录之后会进入环境监测页面，要求输入手机验证码才能最终完成登录。
+
+3. 如果在一个设备上面登录的次数多了，则会出现滑块要求滑动之后进行登录。
+
+所以，我的想法是，先在服务器（CentOS）上面进行验证码登录让系统记录在这个设备和网络上面登录过，然后熟悉了这个环境之后再使用账号+密码的方式进行登录。
 
 ## 已爬历史价格
 
