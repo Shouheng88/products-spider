@@ -246,7 +246,7 @@ class TBGoods(object):
   async def _crawl_channels(self, tb: TaoBao):
     '''爬取各个品类'''
     await tb.init()
-    await tb.login()
+    await tb.login_first_time('17753137089')
     job_no = start_id = item_count = 0
     cursor = redis.get_cursor_of_task(self.task_name, 1)
     type_index = cursor % self.group_count

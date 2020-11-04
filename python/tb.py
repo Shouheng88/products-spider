@@ -80,6 +80,27 @@ class TaoBao(object):
         cookies_list = await self.page.cookies()
         return cookies_list
 
+    async def login_first_time(self, phone: str):
+        '''首次登录'''
+        # 初始化浏览器
+        await self.init()
+        # 打开淘宝登陆页面
+        await self.page.goto('https://login.taobao.com')
+        # 打开淘宝登陆页面
+        time.sleep(random.random() * 2)
+        await self.page.click('.sms-login-tab-item')
+        # 输入用户名
+        await self.page.type('#fm-sms-login-id', phone, {'delay': random.randint(100, 151) - 50})
+        await self.page.click('.send-btn-link')
+        code = input('input code:')
+        # 输入密码
+        await self.page.type('#fm-smscode', code, {'delay': random.randint(100, 151)})
+        # 确定
+        await self.page.click('.sms-login')
+        await asyncio.sleep(5)
+        cookies_list = await self.page.cookies()
+        return cookies_list
+
     async def crawl_keyword(self, keyword: str, max_page: int, tg, channel: Channel):
         """爬取指定关键字的商品"""
         current_page = 0
@@ -316,7 +337,7 @@ class TaoBao(object):
 
 if __name__ == '__main__':
     config.config_logging()
-    tb = TaoBao('***REMOVED***', '***REMOVED***', debug=False, headless=True)
+    tb = TaoBao('***REMOVED***', '***REMOVED***', debug=False, headless=False)
     loop = asyncio.get_event_loop()
-    task = asyncio.ensure_future(tb.craw_items())
+    task = asyncio.ensure_future(tb.login_first_time('17753137089'))
     loop.run_until_complete(task)
