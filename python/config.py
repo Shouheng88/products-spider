@@ -94,7 +94,7 @@ class GlobalConfig(object):
     self._set_env_log_level(env)
     if env == ENV_LOCAL:
       self.db.host = 'localhost'
-      self.db.port = ***REMOVED***
+      self.db.port = 3306
       self.db.database = '***REMOVED***'
       self.db.user = 'root'
       self.db.password = '***REMOVED***'
@@ -105,7 +105,7 @@ class GlobalConfig(object):
       self.redis.port = 6379
     elif env == ENV_TEST:
       self.db.host = 'localhost'
-      self.db.port = ***REMOVED***
+      self.db.port = 3306
       self.db.database = 'shuma'
       self.db.user = 'root'
       self.db.password = '***REMOVED***'
@@ -159,7 +159,7 @@ class DBConfig(object):
   def __init__(self):
     super().__init__()
     self.host = ''
-    self.port = ***REMOVED***
+    self.port = 3306
     self.user = ''
     self.password = ''
     self.database = ''

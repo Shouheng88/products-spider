@@ -110,7 +110,7 @@ class TaoBao(object):
                 # 总是+1，这样某页失败了，这页直接跳过
                 current_page += 1
                 pageurl = "https://s.taobao.com/search?q=%s&s=%d" % (keyword, current_page*44)
-                logging.debug('Crawling %s' % pageurl)
+                logging.info('Crawling %s' % pageurl)
                 (goods_list, parsed_max_page) = await self.__crawl_goods_list_page(pageurl, channel)
                 # 解析总页数
                 if current_page == 1 and parsed_max_page != None:

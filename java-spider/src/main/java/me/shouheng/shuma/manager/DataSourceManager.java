@@ -67,7 +67,7 @@ public class DataSourceManager {
             case test:
                 break;
             case local:
-                source.setUrl("jdbc:mysql://localhost:***REMOVED***/beauty_dev?serverTimezone=GMT%2B8&allowMultiQueries=true");
+                source.setUrl("jdbc:mysql://localhost:3306/beauty_dev?serverTimezone=GMT%2B8&allowMultiQueries=true");
                 source.setUsername("root");
                 source.setPassword("***REMOVED***");
                 break;
